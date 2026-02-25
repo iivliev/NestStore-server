@@ -2,9 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import databaseConfig from './config/database.config';
-import validationSchema from './config/environment.validation';
+import databaseConfig from '../infrastructure/config/database.config';
+import validationSchema from '../infrastructure/config/environment.validation';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SecurityModule } from '../infrastructure/security/security.module';
+import { TypeOrmExceptionFilter } from 'infrastructure/database/filters/typeorm-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
 
 const ENV = process.env.NODE_ENV;
 
@@ -32,8 +35,14 @@ const ENV = process.env.NODE_ENV;
 		}),
 		AuthModule,
 		UsersModule,
+		SecurityModule,
 	],
 	controllers: [],
-	providers: [],
+	providers: [
+		{
+			provide: APP_FILTER,
+			useClass: TypeOrmExceptionFilter,
+		},
+	],
 })
 export class AppModule {}
