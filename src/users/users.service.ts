@@ -4,34 +4,32 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm/repository/Repository.js';
-import { HashingProvider } from 'infrastructure/security/hashing/hashing.provider';
-import { QueryFailedError } from 'typeorm';
+import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
 
 @Injectable()
 export class UsersService {
 	constructor(
 		@InjectRepository(User)
-		private usersRepository: Repository<User>,
+		private readonly usersRepository: Repository<User>,
 
 		private readonly hashingProvider: HashingProvider,
 	) {}
 
 	async create(createUserDto: CreateUserDto) {
-		try {
-			const hashedPassword = await this.hashingProvider.hash(createUserDto.password);
+		const existingUser = await this.findOneByEmail(createUserDto.email);
 
-			const user = this.usersRepository.create({
-				...createUserDto,
-				password: hashedPassword,
-			});
-
-			return this.usersRepository.save(user);
-		} catch (error) {
-			if (error instanceof QueryFailedError) {
-				return 'here';
-			}
-			throw error;
+		if (existingUser) {
+			throw new BadRequestException(`User with email ${createUserDto.email} already exists`);
 		}
+
+		const hashedPassword = await this.hashingProvider.hash(createUserDto.password);
+
+		const user = this.usersRepository.create({
+			...createUserDto,
+			password: hashedPassword,
+		});
+
+		return this.usersRepository.save(user);
 	}
 
 	findAll() {

@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import databaseConfig from '../infrastructure/config/database.config';
-import validationSchema from '../infrastructure/config/environment.validation';
+import databaseConfig from './infrastructure/config/database.config';
+import validationSchema from './infrastructure/config/environment.validation';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SecurityModule } from '../infrastructure/security/security.module';
-import { TypeOrmExceptionFilter } from 'infrastructure/database/filters/typeorm-exception.filter';
+import { SecurityModule } from './infrastructure/security/security.module';
+import { TypeOrmExceptionFilter } from 'src/infrastructure/database/filters/typeorm-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
+import appConfig from './infrastructure/config/app.config';
+import jwtConfig from './infrastructure/config/jwt.config';
 
 const ENV = process.env.NODE_ENV;
 
@@ -16,7 +18,7 @@ const ENV = process.env.NODE_ENV;
 		ConfigModule.forRoot({
 			isGlobal: true,
 			envFilePath: !ENV ? '.env' : `.env.${ENV}`,
-			load: [databaseConfig],
+			load: [appConfig, databaseConfig, jwtConfig],
 			validationSchema,
 		}),
 		TypeOrmModule.forRootAsync({
