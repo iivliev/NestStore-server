@@ -11,11 +11,13 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import appConfig from './infrastructure/config/app.config';
 import jwtConfig from './infrastructure/config/jwt.config';
 import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
+import { ScheduleModule } from '@nestjs/schedule';
 
 const ENV = process.env.NODE_ENV;
 
 @Module({
 	imports: [
+		ScheduleModule.forRoot(),
 		ConfigModule.forRoot({
 			isGlobal: true,
 			envFilePath: !ENV ? '.env' : `.env.${ENV}`,

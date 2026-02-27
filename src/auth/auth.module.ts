@@ -9,6 +9,7 @@ import { UsersModule } from 'src/users/users.module';
 import { HashingModule } from 'src/infrastructure/security/hashing/hashing.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { RefreshTokenCleanupService } from './jwt/refresh-token-cleanup-schedule.service';
 
 @Module({
 	imports: [
@@ -18,7 +19,7 @@ import { RefreshToken } from './entities/refresh-token.entity';
 		HashingModule,
 	],
 	controllers: [AuthController],
-	providers: [AuthService, JwtService, AccessTokenGuard],
+	providers: [AuthService, JwtService, AccessTokenGuard, RefreshTokenCleanupService],
 	exports: [AuthService, AccessTokenGuard],
 })
 export class AuthModule {}

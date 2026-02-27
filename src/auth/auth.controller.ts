@@ -21,8 +21,10 @@ export class AuthController {
 		return await this.authService.signUp(signUpDto, agent);
 	}
 
+	@Auth(AuthType.Private)
 	@Post('sign-out')
 	async signOut() {
+		//@ts-expect-error - user is added to request in authentication guard
 		return await this.authService.signOut();
 	}
 
@@ -31,7 +33,7 @@ export class AuthController {
 		return await this.authService.refreshTokens();
 	}
 
-	@Auth(AuthType.Bearer)
+	@Auth(AuthType.Private)
 	@Post('test')
 	refreshTokensqwe() {}
 }

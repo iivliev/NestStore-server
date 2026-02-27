@@ -64,13 +64,13 @@ export class JwtService {
 
 		const expiresAt = new Date(decodedToken.exp * 1000);
 
-		const existingTokens = await this.refreshTokenRepository.find({
-			where: { user: { id: user.id } },
-			order: { createdAt: 'ASC' },
+		const activeTokens = await this.refreshTokenRepository.find({
+			where: { user: { id: user.id }, revokedAt: IsNull() },
+			order: { createdAt: 'ASC' }, // найстаріший перший
 		});
 
-		if (existingTokens.length >= 5) {
-			await this.refreshTokenRepository.delete(existingTokens[0].id);
+		if (activeTokens.length >= 5) {
+			await this.refreshTokenRepository.delete(activeTokens[0].id);
 		}
 
 		await this.refreshTokenRepository.insert({

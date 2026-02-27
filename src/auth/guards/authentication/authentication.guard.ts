@@ -6,7 +6,7 @@ import { AUTH_TYPE_KEY } from 'src/auth/constants/auth.constants';
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
-	private static readonly defaultAuthType = AuthType.Bearer;
+	private static readonly defaultAuthType = AuthType.Private;
 
 	private readonly authTypeGuardMap: Record<AuthType, CanActivate | CanActivate[]>;
 
@@ -15,7 +15,7 @@ export class AuthenticationGuard implements CanActivate {
 		private readonly accessTokenGuard: AccessTokenGuard,
 	) {
 		this.authTypeGuardMap = {
-			[AuthType.Bearer]: this.accessTokenGuard,
+			[AuthType.Private]: this.accessTokenGuard,
 			[AuthType.Public]: { canActivate: () => true },
 		};
 	}

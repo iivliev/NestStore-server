@@ -50,8 +50,8 @@ export class AuthService {
 		return { accessToken, refreshToken };
 	}
 
-	async signOut() {
-		// Implement sign-out logic here
+	async signOut(token: string) {
+		await this.jwtService.revokeRefreshToken(token);
 	}
 
 	async refreshTokens() {
