@@ -1,5 +1,6 @@
 import { Exclude } from 'class-transformer';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class User {
@@ -18,4 +19,7 @@ export class User {
 
 	@Column({ default: false })
 	confirmed: boolean;
+
+	@OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+	refreshTokens: RefreshToken[];
 }

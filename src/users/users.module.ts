@@ -9,5 +9,6 @@ import { HashingModule } from 'src/infrastructure/security/hashing/hashing.modul
 	imports: [TypeOrmModule.forFeature([User]), HashingModule],
 	controllers: [UsersController],
 	providers: [UsersService],
+	exports: [UsersService],
 })
 export class UsersModule {}
