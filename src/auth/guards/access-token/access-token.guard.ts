@@ -1,15 +1,15 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import jwtConfig from 'src/infrastructure/config/jwt.config';
-import { JwtPayload } from 'src/infrastructure/security/jwt/interfaces/jwt.interface';
+import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
 	constructor(
-		private readonly jwtService: JwtService,
+		private readonly jwtService: NestJwtService,
 
 		@Inject(jwtConfig.KEY)
 		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
