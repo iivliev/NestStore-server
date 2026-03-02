@@ -5,3 +5,10 @@ export type InsertRefreshTokenParams = {
 	refreshToken: string;
 	agent: string | null;
 };
+
+export type SignTokenPayload<T> = {
+	userId: number;
+	expiresIn: number;
+	secret: string;
+	payload?: T;
+};

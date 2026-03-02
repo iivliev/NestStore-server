@@ -54,7 +54,7 @@ export class AuthService {
 		await this.jwtService.revokeRefreshToken(token);
 	}
 
-	async refreshTokens() {
-		// Implement token refresh logic here
+	async refreshTokens(refreshToken: string) {
+		return await this.jwtService.refreshTokens(refreshToken);
 	}
 }
