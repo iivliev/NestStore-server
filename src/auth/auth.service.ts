@@ -53,8 +53,4 @@ export class AuthService {
 	async signOut(token: string) {
 		await this.jwtService.revokeRefreshToken(token);
 	}
-
-	async refreshTokens(refreshToken: string) {
-		return await this.jwtService.refreshTokens(refreshToken);
-	}
 }

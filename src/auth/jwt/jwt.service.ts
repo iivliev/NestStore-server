@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import jwtConfig from 'src/infrastructure/config/jwt.config';
@@ -7,7 +7,6 @@ import { JwtDecoded, JwtPayload } from '../interfaces/jwt.interface';
 import { IsNull, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
 import { InsertRefreshTokenParams, SignTokenPayload } from '../types/jwt.type';
 import { UsersService } from 'src/users/users.service';
 
@@ -21,8 +20,6 @@ export class JwtService {
 		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
 
 		private readonly jwtService: NestJwtService,
-
-		private readonly hashingProvider: HashingProvider,
 
 		private readonly usersService: UsersService,
 	) {}
@@ -65,26 +62,8 @@ export class JwtService {
 		};
 	}
 
-	async decodeToken(token: string): Promise<JwtDecoded> {
-		return await this.jwtService.decode(token);
-	}
-
-	async validateToken(token: string, secret: string): Promise<JwtPayload> {
-		try {
-			const { sub } = await this.jwtService.verifyAsync<Pick<JwtPayload, 'sub'>>(token, {
-				secret,
-				audience: this.jwtConfiguration.audience,
-				issuer: this.jwtConfiguration.issuer,
-			});
-
-			return { sub };
-		} catch {
-			throw new BadRequestException('Could not validate token');
-		}
-	}
-
 	async insertRefreshToken({ user, refreshToken, agent }: InsertRefreshTokenParams) {
-		const decodedToken = await this.decodeToken(refreshToken);
+		const decodedToken = this.jwtService.decode<JwtDecoded>(refreshToken);
 
 		const expiresAt = new Date(decodedToken.exp * 1000);
 
@@ -105,17 +84,8 @@ export class JwtService {
 		});
 	}
 
-	async findRefreshToken(refreshToken: string): Promise<RefreshToken | null> {
-		return await this.refreshTokenRepository.findOne({
-			where: { refreshToken },
-		});
-	}
-
-	async refreshTokens(refreshToken: string) {
-		const secret = this.jwtConfiguration.refreshTokenSecret;
-		const { sub } = await this.validateToken(refreshToken, secret);
-
-		const user = await this.usersService.findOneById(sub);
+	async refreshTokens(userId: number) {
+		const user = await this.usersService.findOneById(userId);
 
 		if (!user) {
 			throw new UnauthorizedException();

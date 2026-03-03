@@ -19,4 +19,6 @@ export default Joi.object({
 	JWT_REFRESH_TOKEN_TTL: Joi.number().default(86400),
 	MAX_ACTIVE_TOKENS: Joi.number().default(5),
 	REFRESH_TOKEN_COOKIE_NAME: Joi.string().default('refreshToken'),
+	REFRESH_TOKEN_COOKIE_PATH: Joi.string().default('/auth'),
+	REFRESH_TOKEN_COOKIE_AGE: Joi.number().default(7 * 24 * 60 * 60 * 1000),
 });

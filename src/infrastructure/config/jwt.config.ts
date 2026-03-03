@@ -9,4 +9,6 @@ export default registerAs('jwt', () => ({
 	refreshTokenTtl: parseInt(process.env.JWT_REFRESH_TOKEN_TTL!, 10),
 	maxActiveTokens: parseInt(process.env.MAX_ACTIVE_TOKENS!, 10),
 	refreshTokenCookieName: process.env.REFRESH_TOKEN_COOKIE_NAME!,
+	refreshTokenCookiePath: process.env.REFRESH_TOKEN_COOKIE_PATH!,
+	refreshTokenCookieAge: parseInt(process.env.REFRESH_TOKEN_COOKIE_AGE!, 10),
 }));
