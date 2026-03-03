@@ -10,6 +10,7 @@ import { RefreshToken } from './decorators/auth/refresh-token.decorator';
 import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie.interceptor';
 import { ActiveUser } from './decorators/user/active-user.decorator';
 import { JwtService } from './jwt/jwt.service';
+
 @UseInterceptors(RefreshTokenCookieInterceptor)
 @Auth(AuthType.Public)
 @Controller('auth')

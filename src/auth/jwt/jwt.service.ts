@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import jwtConfig from 'src/infrastructure/config/jwt.config';
@@ -88,7 +88,7 @@ export class JwtService {
 		const user = await this.usersService.findOneById(userId);
 
 		if (!user) {
-			throw new UnauthorizedException();
+			throw new BadRequestException('User not found');
 		}
 
 		return await this.generateTokens({
@@ -104,7 +104,7 @@ export class JwtService {
 		);
 
 		if (result.affected === 0) {
-			throw new UnauthorizedException();
+			throw new BadRequestException('Refresh token not found or already revoked');
 		}
 	}
 }
