@@ -87,7 +87,7 @@ describe('AuthService', () => {
 			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, mockUser.password);
 			expect(mockJwtService.generateTokens).toHaveBeenCalledWith(mockUser);
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				user: mockUser,
+				userId: mockUser.id,
 				refreshToken: mockTokens.refreshToken,
 				agent,
 			});
@@ -126,7 +126,7 @@ describe('AuthService', () => {
 			const result = await service.signIn(signInDto, null);
 
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				user: mockUser,
+				userId: mockUser.id,
 				refreshToken: mockTokens.refreshToken,
 				agent: null,
 			});
@@ -169,10 +169,9 @@ describe('AuthService', () => {
 			expect(mockUsersService.create).toHaveBeenCalledWith(signUpDto);
 			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
 				id: mockCreatedUser.id,
-				email: mockCreatedUser.email,
 			});
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				user: mockCreatedUser,
+				userId: mockCreatedUser.id,
 				refreshToken: mockTokens.refreshToken,
 				agent,
 			});
@@ -209,7 +208,7 @@ describe('AuthService', () => {
 			const result = await service.signUp(signUpDto, null);
 
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				user: mockCreatedUser,
+				userId: mockCreatedUser.id,
 				refreshToken: mockTokens.refreshToken,
 				agent: null,
 			});
@@ -217,7 +216,7 @@ describe('AuthService', () => {
 			expect(result).toEqual(mockTokens);
 		});
 
-		it('should pass only id and email to generateTokens', async () => {
+		it('should generate tokens', async () => {
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
 			mockUsersService.create.mockResolvedValue(mockCreatedUser);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
@@ -227,7 +226,6 @@ describe('AuthService', () => {
 
 			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
 				id: mockCreatedUser.id,
-				email: mockCreatedUser.email,
 			});
 
 			expect(result).toEqual(mockTokens);

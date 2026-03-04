@@ -84,33 +84,7 @@ describe('JwtService', () => {
 			mockNestJwtService.signAsync.mockResolvedValue(mockToken);
 
 			const result = await service.signToken({
-				userId: 1,
-				expiresIn: 3600,
-				secret: 'test-secret',
-				payload: { email: 'test@example.com' },
-			});
-
-			expect(result).toBe(mockToken);
-			expect(mockNestJwtService.signAsync).toHaveBeenCalledWith(
-				{
-					sub: 1,
-					email: 'test@example.com',
-				},
-				{
-					audience: mockJwtConfig.audience,
-					issuer: mockJwtConfig.issuer,
-					secret: 'test-secret',
-					expiresIn: 3600,
-				},
-			);
-		});
-
-		it('should sign a token without additional payload', async () => {
-			const mockToken = 'signed.jwt.token';
-			mockNestJwtService.signAsync.mockResolvedValue(mockToken);
-
-			const result = await service.signToken({
-				userId: 1,
+				sub: 1,
 				expiresIn: 3600,
 				secret: 'test-secret',
 			});
@@ -139,7 +113,6 @@ describe('JwtService', () => {
 
 			const result = await service.generateTokens({
 				id: 1,
-				email: 'test@example.com',
 			});
 
 			expect(result).toEqual({
@@ -152,7 +125,6 @@ describe('JwtService', () => {
 				1,
 				{
 					sub: 1,
-					email: 'test@example.com',
 				},
 				{
 					audience: mockJwtConfig.audience,
@@ -189,7 +161,7 @@ describe('JwtService', () => {
 			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
 			await service.insertRefreshToken({
-				user: mockUser,
+				userId: mockUser.id,
 				refreshToken: mockRefreshToken,
 				agent: 'Mozilla/5.0',
 			});
@@ -200,7 +172,7 @@ describe('JwtService', () => {
 				order: { createdAt: 'ASC' },
 			});
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
-				user: mockUser,
+				user: { id: mockUser.id },
 				agent: 'Mozilla/5.0',
 				refreshToken: mockRefreshToken,
 				expiresAt: new Date(mockDecodedToken.exp * 1000),
@@ -230,7 +202,7 @@ describe('JwtService', () => {
 			mockRefreshTokenRepository.find.mockResolvedValue(activeTokens);
 
 			await service.insertRefreshToken({
-				user: mockUser,
+				userId: mockUser.id,
 				refreshToken: mockRefreshToken,
 				agent: 'Mozilla/5.0',
 			});
@@ -251,13 +223,13 @@ describe('JwtService', () => {
 			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
 			await service.insertRefreshToken({
-				user: mockUser,
+				userId: mockUser.id,
 				refreshToken: mockRefreshToken,
 				agent: null,
 			});
 
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
-				user: mockUser,
+				user: { id: mockUser.id },
 				agent: null,
 				refreshToken: mockRefreshToken,
 				expiresAt: new Date(mockDecodedToken.exp * 1000),
@@ -266,28 +238,80 @@ describe('JwtService', () => {
 	});
 
 	describe('refreshTokens', () => {
-		it('should refresh tokens for valid user', async () => {
+		it('should refresh tokens and revoke old token', async () => {
+			const mockOldRefreshToken = 'old.refresh.token';
 			const mockAccessToken = 'new.access.token';
-			const mockRefreshToken = 'new.refresh.token';
+			const mockNewRefreshToken = 'new.refresh.token';
+			const mockAgent = 'Mozilla/5.0';
+			const mockDecodedToken = {
+				sub: 1,
+				iat: Math.floor(Date.now() / 1000),
+				exp: Math.floor(Date.now() / 1000) + 86400,
+			};
 
-			mockUsersService.findOneById.mockResolvedValue(mockUser);
-			mockNestJwtService.signAsync.mockResolvedValueOnce(mockAccessToken).mockResolvedValueOnce(mockRefreshToken);
+			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
+			mockNestJwtService.signAsync.mockResolvedValueOnce(mockAccessToken).mockResolvedValueOnce(mockNewRefreshToken);
+			mockNestJwtService.decode.mockReturnValue(mockDecodedToken);
+			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
-			const result = await service.refreshTokens(1);
+			const result = await service.refreshTokens(1, mockOldRefreshToken, mockAgent);
 
-			expect(mockUsersService.findOneById).toHaveBeenCalledWith(1);
+			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+				{
+					user: { id: 1 },
+					refreshToken: mockOldRefreshToken,
+					revokedAt: IsNull(),
+				},
+				{ revokedAt: expect.any(Date) as string },
+			);
+
+			expect(mockNestJwtService.signAsync).toHaveBeenCalledTimes(2);
+
+			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
+				user: { id: 1 },
+				agent: mockAgent,
+				refreshToken: mockNewRefreshToken,
+				expiresAt: new Date(mockDecodedToken.exp * 1000),
+			});
+
 			expect(result).toEqual({
 				accessToken: mockAccessToken,
-				refreshToken: mockRefreshToken,
+				refreshToken: mockNewRefreshToken,
 			});
 		});
 
-		it('should throw BadRequestException when user not found', async () => {
-			mockUsersService.findOneById.mockResolvedValue(null);
+		it('should throw UnauthorizedException when refresh token not found', async () => {
+			const mockOldRefreshToken = 'invalid.token';
+			const mockAgent = 'Mozilla/5.0';
 
-			await expect(service.refreshTokens(999)).rejects.toThrow(BadRequestException);
+			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
 
-			expect(mockUsersService.findOneById).toHaveBeenCalledWith(999);
+			await expect(service.refreshTokens(1, mockOldRefreshToken, mockAgent)).rejects.toThrow(
+				'Refresh token not found or already revoked',
+			);
+
+			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
+				{
+					user: { id: 1 },
+					refreshToken: mockOldRefreshToken,
+					revokedAt: IsNull(),
+				},
+				{ revokedAt: expect.any(Date) as string },
+			);
+
+			expect(mockNestJwtService.signAsync).not.toHaveBeenCalled();
+			expect(mockRefreshTokenRepository.insert).not.toHaveBeenCalled();
+		});
+
+		it('should throw UnauthorizedException when token already revoked', async () => {
+			const mockOldRefreshToken = 'revoked.token';
+			const mockAgent = 'Mozilla/5.0';
+
+			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
+
+			await expect(service.refreshTokens(999, mockOldRefreshToken, mockAgent)).rejects.toThrow(
+				'Refresh token not found or already revoked',
+			);
 		});
 	});
 

@@ -120,9 +120,12 @@ describe('AuthController', () => {
 
 		mockJwtService.refreshTokens.mockResolvedValue(expectedResult);
 
-		const result = await controller.refreshTokens(userId);
+		// Provide the required three arguments: userId, refreshToken, and userAgent
+		const refreshToken = 'valid-refresh-token';
+		const userAgent = 'Mozilla/5.0';
+		const result = await controller.refreshTokens(userId, refreshToken, userAgent);
 
-		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith(userId);
+		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith(userId, refreshToken, userAgent);
 		expect(mockJwtService.refreshTokens).toHaveBeenCalledTimes(1);
 		expect(result).toEqual(expectedResult);
 	});
