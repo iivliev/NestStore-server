@@ -5,7 +5,7 @@ import { JwtService } from './jwt/jwt.service';
 import { SignInUserDto } from './dto/sign-in-user.dto';
 import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
-import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie.interceptor';
+import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie/refresh-token-cookie.interceptor';
 
 describe('AuthController', () => {
 	let controller: AuthController;

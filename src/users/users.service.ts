@@ -59,7 +59,11 @@ export class UsersService {
 	}
 
 	async remove(id: number) {
-		await this.usersRepository.delete({ id });
+		const result = await this.usersRepository.delete({ id });
+
+		if (result.affected === 0) {
+			throw new BadRequestException(`User with id ${id} not found`);
+		}
 
 		return { message: `User with id ${id} has been removed` };
 	}

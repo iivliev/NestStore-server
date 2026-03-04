@@ -1,7 +1,150 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { AccessTokenGuard } from './access-token.guard';
+import { JwtService as NestJwtService } from '@nestjs/jwt';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import jwtConfig from 'src/infrastructure/config/jwt.config';
+import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
+
+const ACCESS_TOKEN = 'test-access-token';
 
 describe('AccessTokenGuard', () => {
-	it('should be defined', () => {
-		expect(new AccessTokenGuard()).toBeDefined();
+	let guard: AccessTokenGuard;
+
+	const mockJwtService = {
+		verifyAsync: jest.fn(),
+	};
+
+	const mockJwtConfig = {
+		accessTokenSecret: 'test-access-secret',
+		audience: 'test-audience',
+		issuer: 'test-issuer',
+	};
+
+	const mockRequest: { headers: { [key: string]: any }; [key: string]: any } = {
+		headers: {},
+	};
+
+	const mockExecutionContext = {
+		switchToHttp: jest.fn().mockReturnValue({
+			getRequest: jest.fn().mockReturnValue(mockRequest),
+		}),
+	} as unknown as ExecutionContext;
+
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				AccessTokenGuard,
+				{
+					provide: NestJwtService,
+					useValue: mockJwtService,
+				},
+				{
+					provide: jwtConfig.KEY,
+					useValue: mockJwtConfig,
+				},
+			],
+		}).compile();
+
+		guard = module.get<AccessTokenGuard>(AccessTokenGuard);
+
+		jest.clearAllMocks();
+		mockRequest.headers = {};
+		delete mockRequest[REQUEST_USER_KEY];
+	});
+
+	describe('canActivate', () => {
+		it('should return true when valid access token is present', async () => {
+			const mockPayload: JwtPayload = {
+				sub: 1,
+				email: 'test@example.com',
+			};
+
+			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
+			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+
+			const result = await guard.canActivate(mockExecutionContext);
+
+			expect(result).toBe(true);
+			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(ACCESS_TOKEN, {
+				secret: mockJwtConfig.accessTokenSecret,
+				audience: mockJwtConfig.audience,
+				issuer: mockJwtConfig.issuer,
+			});
+		});
+
+		it('should throw UnauthorizedException when authorization header is missing', async () => {
+			mockRequest.headers = {};
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+			expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
+		});
+
+		it('should throw UnauthorizedException when token is missing from Bearer header', async () => {
+			mockRequest.headers.authorization = 'Bearer';
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+			expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
+		});
+
+		it('should throw UnauthorizedException when Bearer keyword is missing', async () => {
+			mockRequest.headers.authorization = 'some-token';
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+			expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
+		});
+
+		it('should throw UnauthorizedException when token verification fails', async () => {
+			mockRequest.headers.authorization = 'Bearer invalid-token';
+			mockJwtService.verifyAsync.mockRejectedValue(new Error('Invalid token'));
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
+				secret: mockJwtConfig.accessTokenSecret,
+				audience: mockJwtConfig.audience,
+				issuer: mockJwtConfig.issuer,
+			});
+		});
+
+		it('should attach user payload to request', async () => {
+			const mockPayload: JwtPayload = {
+				sub: 123,
+				email: 'user@test.com',
+			};
+
+			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
+			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+
+			await guard.canActivate(mockExecutionContext);
+
+			expect(mockRequest[REQUEST_USER_KEY]).toEqual(mockPayload);
+		});
+
+		it('should handle token verification with expired token', async () => {
+			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
+			mockJwtService.verifyAsync.mockRejectedValue(new Error('Token expired'));
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+		});
+
+		it('should extract token correctly from Bearer authorization header', async () => {
+			const mockPayload: JwtPayload = {
+				sub: 1,
+			};
+
+			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
+			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+
+			await guard.canActivate(mockExecutionContext);
+
+			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(ACCESS_TOKEN, expect.any(Object));
+		});
+
+		it('should handle authorization header with extra spaces', async () => {
+			mockRequest.headers.authorization = 'Bearer  ';
+
+			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
+			expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
+		});
 	});
 });

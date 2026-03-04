@@ -29,6 +29,7 @@ export class RefreshTokenCookieInterceptor implements NestInterceptor<
 					response.clearCookie(this.configService.get<string>('jwt.refreshTokenCookieName')!, {
 						path: this.configService.get<string>('jwt.refreshTokenCookiePath'),
 					});
+					return {};
 				}
 
 				if (refreshToken) {

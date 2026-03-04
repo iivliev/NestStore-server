@@ -7,7 +7,7 @@ import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { UserAgent } from './decorators/user/user-agent.decorator';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
 import { RefreshToken } from './decorators/auth/refresh-token.decorator';
-import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie.interceptor';
+import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie/refresh-token-cookie.interceptor';
 import { ActiveUser } from './decorators/user/active-user.decorator';
 import { JwtService } from './jwt/jwt.service';
 
