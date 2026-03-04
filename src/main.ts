@@ -26,13 +26,6 @@ async function bootstrap() {
 
 	const PORT = configService.get<string>('PORT')!;
 
-	const NODE_ENV = configService.get<string>('NODE_ENV');
-
 	await app.listen(PORT);
-
-	if (NODE_ENV !== 'production') {
-		// eslint-disable-next-line no-console
-		console.log(`Server is running on port ${PORT}`);
-	}
 }
 bootstrap();
