@@ -1,0 +1,36 @@
+### Variables
+@baseUrl=http://localhost:3001
+@contentType = application/json
+@email = john.doe@example.com
+@password = Password123
+
+### Sign Up - Create new user account
+POST {{baseUrl}}/auth/sign-up
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "name": "John Doe",
+  "password": "{{password}}"
+}
+
+### Sign In - Login with existing account
+POST {{baseUrl}}/auth/sign-in
+Content-Type: {{contentType}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Refresh Tokens - Get new access token using refresh token cookie
+# Note: This requires a valid refresh token cookie from sign-in/sign-up
+POST {{baseUrl}}/auth/refresh-tokens
+Content-Type: {{contentType}}
+Cookie: refreshToken=REPLACE_WITH_VALID_REFRESH_TOKEN_COOKIE
+
+### Sign Out - Logout and revoke refresh token
+# Note: This requires a valid refresh token cookie
+POST {{baseUrl}}/auth/sign-out
+Content-Type: {{contentType}}
+Cookie: refreshToken=REPLACE_WITH_VALID_REFRESH_TOKEN_COOKIE

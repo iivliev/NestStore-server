@@ -1,14 +1,13 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import jwtConfig from 'src/infrastructure/config/jwt.config';
 import { User } from 'src/users/entities/user.entity';
-import { JwtDecoded, JwtPayload } from '../interfaces/jwt.interface';
+import { JwtDecoded } from '../interfaces/jwt.interface';
 import { IsNull, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InsertRefreshTokenParams, SignTokenPayload } from '../types/jwt.type';
-import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class JwtService {
@@ -20,14 +19,12 @@ export class JwtService {
 		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
 
 		private readonly jwtService: NestJwtService,
-
-		private readonly usersService: UsersService,
 	) {}
 
-	async signToken<T>({ userId, expiresIn, secret, payload }: SignTokenPayload<T>) {
+	async signToken<T>({ sub, expiresIn, secret, payload }: SignTokenPayload<T>) {
 		return await this.jwtService.signAsync(
 			{
-				sub: userId,
+				sub,
 				...payload,
 			},
 			{
@@ -39,18 +36,15 @@ export class JwtService {
 		);
 	}
 
-	async generateTokens({ id: userId, email }: Pick<User, 'id' | 'email'>) {
+	async generateTokens({ id: userId }: Pick<User, 'id'>) {
 		const [accessToken, refreshToken] = await Promise.all([
-			this.signToken<Partial<JwtPayload>>({
-				userId,
+			this.signToken({
+				sub: userId,
 				expiresIn: this.jwtConfiguration.accessTokenTtl,
 				secret: this.jwtConfiguration.accessTokenSecret,
-				payload: {
-					email,
-				},
 			}),
-			this.signToken<Partial<JwtPayload>>({
-				userId,
+			this.signToken({
+				sub: userId,
 				secret: this.jwtConfiguration.refreshTokenSecret,
 				expiresIn: this.jwtConfiguration.refreshTokenTtl,
 			}),
@@ -62,13 +56,13 @@ export class JwtService {
 		};
 	}
 
-	async insertRefreshToken({ user, refreshToken, agent }: InsertRefreshTokenParams) {
+	async insertRefreshToken({ userId, refreshToken, agent }: InsertRefreshTokenParams) {
 		const decodedToken = this.jwtService.decode<JwtDecoded>(refreshToken);
 
 		const expiresAt = new Date(decodedToken.exp * 1000);
 
 		const activeTokens = await this.refreshTokenRepository.find({
-			where: { user: { id: user.id }, revokedAt: IsNull() },
+			where: { user: { id: userId }, revokedAt: IsNull() },
 			order: { createdAt: 'ASC' },
 		});
 
@@ -77,24 +71,41 @@ export class JwtService {
 		}
 
 		await this.refreshTokenRepository.insert({
-			user,
+			user: { id: userId },
 			agent,
 			refreshToken,
 			expiresAt,
 		});
 	}
 
-	async refreshTokens(userId: number) {
-		const user = await this.usersService.findOneById(userId);
+	async refreshTokens(userId: number, refreshToken: string, agent: string) {
+		const result = await this.refreshTokenRepository.update(
+			{
+				user: { id: userId },
+				refreshToken,
+				revokedAt: IsNull(),
+			},
+			{ revokedAt: new Date() },
+		);
 
-		if (!user) {
-			throw new BadRequestException('User not found');
+		if (result.affected === 0) {
+			throw new UnauthorizedException('Refresh token not found or already revoked');
 		}
 
-		return await this.generateTokens({
-			id: user.id,
-			email: user.email,
+		const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
+			id: userId,
 		});
+
+		await this.insertRefreshToken({
+			userId,
+			refreshToken: newRefreshToken,
+			agent,
+		});
+
+		return {
+			accessToken,
+			refreshToken: newRefreshToken,
+		};
 	}
 
 	async revokeRefreshToken(refreshToken: string): Promise<void> {

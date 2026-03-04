@@ -29,7 +29,7 @@ export class AuthService {
 		}
 
 		const { accessToken, refreshToken } = await this.jwtService.generateTokens(existingUser);
-		await this.jwtService.insertRefreshToken({ user: existingUser, refreshToken, agent });
+		await this.jwtService.insertRefreshToken({ userId: existingUser.id, refreshToken, agent });
 
 		return { accessToken, refreshToken };
 	}
@@ -43,9 +43,9 @@ export class AuthService {
 
 		const user = await this.usersService.create(signUpDto);
 
-		const { accessToken, refreshToken } = await this.jwtService.generateTokens({ id: user.id, email: user.email });
+		const { accessToken, refreshToken } = await this.jwtService.generateTokens({ id: user.id });
 
-		await this.jwtService.insertRefreshToken({ user, refreshToken, agent });
+		await this.jwtService.insertRefreshToken({ userId: user.id, refreshToken, agent });
 
 		return { accessToken, refreshToken };
 	}

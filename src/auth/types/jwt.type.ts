@@ -1,13 +1,11 @@
-import { User } from 'src/users/entities/user.entity';
-
 export type InsertRefreshTokenParams = {
-	user: User;
+	userId: number;
 	refreshToken: string;
 	agent: string | null;
 };
 
 export type SignTokenPayload<T> = {
-	userId: number;
+	sub: number;
 	expiresIn: number;
 	secret: string;
 	payload?: T;

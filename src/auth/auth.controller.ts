@@ -40,7 +40,11 @@ export class AuthController {
 
 	@UseGuards(RefreshTokenGuard)
 	@Post('refresh-tokens')
-	async refreshTokens(@ActiveUser('sub') userId: number) {
-		return await this.jwtService.refreshTokens(userId);
+	async refreshTokens(
+		@ActiveUser('sub') userId: number,
+		@RefreshToken() refreshToken: string,
+		@UserAgent() agent: string,
+	) {
+		return await this.jwtService.refreshTokens(userId, refreshToken, agent);
 	}
 }
