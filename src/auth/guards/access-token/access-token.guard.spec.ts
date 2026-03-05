@@ -7,6 +7,9 @@ import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
 const ACCESS_TOKEN = 'test-access-token';
+const JWT_PAYLOAD: JwtPayload = {
+	sub: 123,
+};
 
 describe('AccessTokenGuard', () => {
 	let guard: AccessTokenGuard;
@@ -55,13 +58,8 @@ describe('AccessTokenGuard', () => {
 
 	describe('canActivate', () => {
 		it('should return true when valid access token is present', async () => {
-			const mockPayload: JwtPayload = {
-				sub: 1,
-				email: 'test@example.com',
-			};
-
 			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
-			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			const result = await guard.canActivate(mockExecutionContext);
 
@@ -107,17 +105,12 @@ describe('AccessTokenGuard', () => {
 		});
 
 		it('should attach user payload to request', async () => {
-			const mockPayload: JwtPayload = {
-				sub: 123,
-				email: 'user@test.com',
-			};
-
 			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
-			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			await guard.canActivate(mockExecutionContext);
 
-			expect(mockRequest[REQUEST_USER_KEY]).toEqual(mockPayload);
+			expect(mockRequest[REQUEST_USER_KEY]).toEqual(JWT_PAYLOAD);
 		});
 
 		it('should handle token verification with expired token', async () => {
@@ -128,12 +121,8 @@ describe('AccessTokenGuard', () => {
 		});
 
 		it('should extract token correctly from Bearer authorization header', async () => {
-			const mockPayload: JwtPayload = {
-				sub: 1,
-			};
-
 			mockRequest.headers.authorization = `Bearer ${ACCESS_TOKEN}`;
-			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			await guard.canActivate(mockExecutionContext);
 

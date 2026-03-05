@@ -7,6 +7,21 @@ import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
 import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie/refresh-token-cookie.interceptor';
 
+const AGENT = 'Mozilla/5.0';
+const SIGN_IN_DTO: SignInUserDto = {
+	email: 'test@example.com',
+	password: 'Password123',
+};
+const SIGN_UP_DTO: SignUpUserDto = {
+	email: 'newuser@example.com',
+	name: 'New User',
+	password: 'Password123',
+};
+const ENDPOINT_RESPONSE = {
+	accessToken: 'access-token',
+	refreshToken: 'refresh-token',
+};
+
 describe('AuthController', () => {
 	let controller: AuthController;
 
@@ -59,44 +74,23 @@ describe('AuthController', () => {
 	});
 
 	it('should sign in a user successfully', async () => {
-		const signInDto: SignInUserDto = {
-			email: 'test@example.com',
-			password: 'Password123',
-		};
-		const userAgent = 'Mozilla/5.0';
-		const expectedResult = {
-			accessToken: 'access-token',
-			refreshToken: 'refresh-token',
-		};
+		mockAuthService.signIn.mockResolvedValue(ENDPOINT_RESPONSE);
 
-		mockAuthService.signIn.mockResolvedValue(expectedResult);
+		const result = await controller.signIn(SIGN_IN_DTO, AGENT);
 
-		const result = await controller.signIn(signInDto, userAgent);
-
-		expect(mockAuthService.signIn).toHaveBeenCalledWith(signInDto, userAgent);
+		expect(mockAuthService.signIn).toHaveBeenCalledWith(SIGN_IN_DTO, AGENT);
 		expect(mockAuthService.signIn).toHaveBeenCalledTimes(1);
-		expect(result).toEqual(expectedResult);
+		expect(result).toEqual(ENDPOINT_RESPONSE);
 	});
 
 	it('should sign up a user successfully', async () => {
-		const signUpDto: SignUpUserDto = {
-			email: 'newuser@example.com',
-			name: 'New User',
-			password: 'Password123',
-		};
-		const userAgent = 'Mozilla/5.0';
-		const expectedResult = {
-			accessToken: 'access-token',
-			refreshToken: 'refresh-token',
-		};
+		mockAuthService.signUp.mockResolvedValue(ENDPOINT_RESPONSE);
 
-		mockAuthService.signUp.mockResolvedValue(expectedResult);
+		const result = await controller.signUp(SIGN_UP_DTO, AGENT);
 
-		const result = await controller.signUp(signUpDto, userAgent);
-
-		expect(mockAuthService.signUp).toHaveBeenCalledWith(signUpDto, userAgent);
+		expect(mockAuthService.signUp).toHaveBeenCalledWith(SIGN_UP_DTO, AGENT);
 		expect(mockAuthService.signUp).toHaveBeenCalledTimes(1);
-		expect(result).toEqual(expectedResult);
+		expect(result).toEqual(ENDPOINT_RESPONSE);
 	});
 
 	it('should sign out successfully and return clearRefreshToken flag', async () => {
@@ -114,20 +108,14 @@ describe('AuthController', () => {
 
 	it('should refresh tokens successfully', async () => {
 		const userId = 1;
-		const expectedResult = {
-			accessToken: 'new-access-token',
-			refreshToken: 'new-refresh-token',
-		};
 
-		mockJwtService.refreshTokens.mockResolvedValue(expectedResult);
+		mockJwtService.refreshTokens.mockResolvedValue(ENDPOINT_RESPONSE);
 
-		// Provide the required three arguments: userId, refreshToken, and userAgent
 		const refreshToken = 'valid-refresh-token';
-		const userAgent = 'Mozilla/5.0';
-		const result = await controller.refreshTokens(userId, refreshToken, userAgent);
+		const result = await controller.refreshTokens(userId, refreshToken, AGENT);
 
-		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith(userId, refreshToken, userAgent);
+		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith(userId, refreshToken, AGENT);
 		expect(mockJwtService.refreshTokens).toHaveBeenCalledTimes(1);
-		expect(result).toEqual(expectedResult);
+		expect(result).toEqual(ENDPOINT_RESPONSE);
 	});
 });

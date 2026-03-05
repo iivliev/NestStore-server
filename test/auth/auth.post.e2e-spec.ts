@@ -34,7 +34,7 @@ describe('[Auth] @Post Endpoints', () => {
 		await app.close();
 	});
 
-	describe('/auth/sign-up (POST)', () => {
+	describe(`${SIGN_UP_ENDPOINT} (POST)`, () => {
 		it('should successfully sign up a new user with valid data', async () => {
 			const signUpDto = {
 				email: faker.internet.email(),
@@ -139,7 +139,7 @@ describe('[Auth] @Post Endpoints', () => {
 		});
 	});
 
-	describe('/auth/sign-in (POST)', () => {
+	describe(`${SIGN_IN_ENDPOINT} (POST)`, () => {
 		it('should successfully sign in with valid credentials', async () => {
 			const userCredentials = {
 				email: faker.internet.email(),
@@ -240,7 +240,7 @@ describe('[Auth] @Post Endpoints', () => {
 		});
 	});
 
-	describe('/auth/sign-out (POST)', () => {
+	describe(`${SIGN_OUT_ENDPOINT} (POST)`, () => {
 		it('should successfully sign out with valid refresh token', async () => {
 			const userCredentials = {
 				email: faker.internet.email(),
@@ -269,7 +269,7 @@ describe('[Auth] @Post Endpoints', () => {
 		});
 	});
 
-	describe('/auth/refresh-tokens (POST)', () => {
+	describe(`${REFRESH_TOKENS_ENDPOINT} (POST)`, () => {
 		it('should successfully refresh tokens with valid refresh token', async () => {
 			const userCredentials = {
 				email: faker.internet.email(),

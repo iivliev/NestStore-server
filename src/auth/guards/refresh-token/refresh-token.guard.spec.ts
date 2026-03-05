@@ -7,6 +7,10 @@ import { REQUEST_USER_KEY, REFRESH_TOKEN_KEY } from 'src/auth/constants/auth.con
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
 const REFRESH_TOKEN = 'test-refresh-token';
+const JWT_PAYLOAD: JwtPayload = {
+	sub: 1,
+};
+
 describe('RefreshTokenGuard', () => {
 	let guard: RefreshTokenGuard;
 
@@ -56,13 +60,8 @@ describe('RefreshTokenGuard', () => {
 
 	describe('canActivate', () => {
 		it('should return true when valid refresh token is present', async () => {
-			const mockPayload: JwtPayload = {
-				sub: 1,
-				email: 'test@example.com',
-			};
-
 			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = REFRESH_TOKEN;
-			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			const result = await guard.canActivate(mockExecutionContext);
 
@@ -101,17 +100,12 @@ describe('RefreshTokenGuard', () => {
 		});
 
 		it('should attach payload to request', async () => {
-			const mockPayload: JwtPayload = {
-				sub: 1,
-				email: 'test@example.com',
-			};
-
 			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = REFRESH_TOKEN;
-			mockJwtService.verifyAsync.mockResolvedValue(mockPayload);
+			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			await guard.canActivate(mockExecutionContext);
 
-			expect(mockRequest[REQUEST_USER_KEY]).toEqual(mockPayload);
+			expect(mockRequest[REQUEST_USER_KEY]).toEqual(JWT_PAYLOAD);
 			expect(mockRequest[REFRESH_TOKEN_KEY]).toEqual(REFRESH_TOKEN);
 		});
 

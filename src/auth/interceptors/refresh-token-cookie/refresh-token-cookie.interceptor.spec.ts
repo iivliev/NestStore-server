@@ -17,6 +17,19 @@ const REFRESH_TOKEN_COOKIE_NAME = 'testRefreshToken';
 const REFRESH_TOKEN_COOKIE_PATH = '/auth';
 const REFRESH_TOKEN_COOKIE_AGE = 604800000;
 
+const CONFIG = {
+	'jwt.refreshTokenCookieName': REFRESH_TOKEN_COOKIE_NAME,
+	'jwt.refreshTokenCookiePath': REFRESH_TOKEN_COOKIE_PATH,
+	'jwt.refreshTokenCookieAge': REFRESH_TOKEN_COOKIE_AGE,
+	NODE_ENV: 'test',
+};
+
+const TOKEN_RESPONSE: TokenResponse = {
+	refreshToken: REFRESH_TOKEN,
+	accessToken: ACCESS_TOKEN,
+	clearRefreshToken: false,
+};
+
 describe('RefreshTokenCookieInterceptor', () => {
 	let interceptor: RefreshTokenCookieInterceptor;
 
@@ -49,12 +62,8 @@ describe('RefreshTokenCookieInterceptor', () => {
 		interceptor = module.get<RefreshTokenCookieInterceptor>(RefreshTokenCookieInterceptor);
 
 		mockConfigService.get.mockImplementation((key: string) => {
-			const config: Record<string, string | number> = {
-				'jwt.refreshTokenCookieName': REFRESH_TOKEN_COOKIE_NAME,
-				'jwt.refreshTokenCookiePath': REFRESH_TOKEN_COOKIE_PATH,
-				'jwt.refreshTokenCookieAge': REFRESH_TOKEN_COOKIE_AGE,
-				NODE_ENV: 'test',
-			};
+			const config: Record<string, string | number> = { ...CONFIG };
+
 			return config[key];
 		});
 	});
@@ -65,13 +74,8 @@ describe('RefreshTokenCookieInterceptor', () => {
 
 	describe('intercept', () => {
 		it('should set refresh token cookie when refreshToken is present', (done) => {
-			const mockData: TokenResponse = {
-				refreshToken: REFRESH_TOKEN,
-				accessToken: ACCESS_TOKEN,
-			};
-
 			const mockCallHandler: CallHandler<TokenResponse> = {
-				handle: jest.fn().mockReturnValue(of(mockData)),
+				handle: jest.fn().mockReturnValue(of(TOKEN_RESPONSE)),
 			};
 
 			interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
@@ -93,21 +97,14 @@ describe('RefreshTokenCookieInterceptor', () => {
 		it('should set secure cookie in production environment', (done) => {
 			mockConfigService.get.mockImplementation((key: string) => {
 				const config: Record<string, string | number> = {
-					'jwt.refreshTokenCookieName': REFRESH_TOKEN_COOKIE_NAME,
-					'jwt.refreshTokenCookiePath': REFRESH_TOKEN_COOKIE_PATH,
-					'jwt.refreshTokenCookieAge': REFRESH_TOKEN_COOKIE_AGE,
+					...CONFIG,
 					NODE_ENV: 'production',
 				};
 				return config[key];
 			});
 
-			const mockData: TokenResponse = {
-				refreshToken: REFRESH_TOKEN,
-				accessToken: ACCESS_TOKEN,
-			};
-
 			const mockCallHandler: CallHandler<TokenResponse> = {
-				handle: jest.fn().mockReturnValue(of(mockData)),
+				handle: jest.fn().mockReturnValue(of(TOKEN_RESPONSE)),
 			};
 
 			interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
@@ -148,9 +145,8 @@ describe('RefreshTokenCookieInterceptor', () => {
 
 		it('should handle both clearing and setting cookie', (done) => {
 			const mockData: TokenResponse = {
+				...TOKEN_RESPONSE,
 				clearRefreshToken: true,
-				refreshToken: REFRESH_TOKEN,
-				accessToken: ACCESS_TOKEN,
 			};
 
 			const mockCallHandler: CallHandler<TokenResponse> = {

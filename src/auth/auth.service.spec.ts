@@ -8,6 +8,20 @@ import { SignInUserDto } from './dto/sign-in-user.dto';
 import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { User } from 'src/users/entities/user.entity';
 
+const mockTokens = {
+	accessToken: 'access-token',
+	refreshToken: 'refresh-token',
+};
+
+const user: User = {
+	id: 1,
+	email: 'test@example.com',
+	name: 'Test User',
+	password: 'hashedPassword',
+	confirmed: false,
+	refreshTokens: [],
+};
+
 describe('AuthService', () => {
 	let service: AuthService;
 
@@ -59,24 +73,10 @@ describe('AuthService', () => {
 			password: 'Password123',
 		};
 
-		const mockUser: User = {
-			id: 1,
-			email: 'test@example.com',
-			name: 'Test User',
-			password: 'hashedPassword',
-			confirmed: false,
-			refreshTokens: [],
-		};
-
-		const mockTokens = {
-			accessToken: 'access-token',
-			refreshToken: 'refresh-token',
-		};
-
 		it('should sign in successfully with valid credentials', async () => {
 			const agent = 'Mozilla/5.0';
 
-			mockUsersService.findOneByEmail.mockResolvedValue(mockUser);
+			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(true);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
 			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
@@ -84,10 +84,10 @@ describe('AuthService', () => {
 			const result = await service.signIn(signInDto, agent);
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
-			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, mockUser.password);
-			expect(mockJwtService.generateTokens).toHaveBeenCalledWith(mockUser);
+			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, user.password);
+			expect(mockJwtService.generateTokens).toHaveBeenCalledWith(user);
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: mockUser.id,
+				userId: user.id,
 				refreshToken: mockTokens.refreshToken,
 				agent,
 			});
@@ -107,18 +107,18 @@ describe('AuthService', () => {
 		});
 
 		it('should throw BadRequestException when password is incorrect', async () => {
-			mockUsersService.findOneByEmail.mockResolvedValue(mockUser);
+			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(false);
 
 			await expect(service.signIn(signInDto, null)).rejects.toThrow(new BadRequestException('Incorrect password'));
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
-			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, mockUser.password);
+			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, user.password);
 			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
 		});
 
 		it('should handle null agent parameter', async () => {
-			mockUsersService.findOneByEmail.mockResolvedValue(mockUser);
+			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(true);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
 			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
@@ -126,7 +126,7 @@ describe('AuthService', () => {
 			const result = await service.signIn(signInDto, null);
 
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: mockUser.id,
+				userId: user.id,
 				refreshToken: mockTokens.refreshToken,
 				agent: null,
 			});
@@ -141,25 +141,11 @@ describe('AuthService', () => {
 			password: 'Password123',
 		};
 
-		const mockCreatedUser: User = {
-			id: 2,
-			email: 'newuser@example.com',
-			name: 'New User',
-			password: 'hashedPassword',
-			confirmed: false,
-			refreshTokens: [],
-		};
-
-		const mockTokens = {
-			accessToken: 'new-access-token',
-			refreshToken: 'new-refresh-token',
-		};
-
 		it('should sign up successfully with new user', async () => {
 			const agent = 'Chrome';
 
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
-			mockUsersService.create.mockResolvedValue(mockCreatedUser);
+			mockUsersService.create.mockResolvedValue(user);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
 			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
 
@@ -168,10 +154,10 @@ describe('AuthService', () => {
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signUpDto.email);
 			expect(mockUsersService.create).toHaveBeenCalledWith(signUpDto);
 			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
-				id: mockCreatedUser.id,
+				id: user.id,
 			});
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: mockCreatedUser.id,
+				userId: user.id,
 				refreshToken: mockTokens.refreshToken,
 				agent,
 			});
@@ -201,14 +187,14 @@ describe('AuthService', () => {
 
 		it('should handle null agent parameter', async () => {
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
-			mockUsersService.create.mockResolvedValue(mockCreatedUser);
+			mockUsersService.create.mockResolvedValue(user);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
 			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
 
 			const result = await service.signUp(signUpDto, null);
 
 			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: mockCreatedUser.id,
+				userId: user.id,
 				refreshToken: mockTokens.refreshToken,
 				agent: null,
 			});
@@ -218,14 +204,14 @@ describe('AuthService', () => {
 
 		it('should generate tokens', async () => {
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
-			mockUsersService.create.mockResolvedValue(mockCreatedUser);
+			mockUsersService.create.mockResolvedValue(user);
 			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
 			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
 
 			const result = await service.signUp(signUpDto, null);
 
 			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
-				id: mockCreatedUser.id,
+				id: user.id,
 			});
 
 			expect(result).toEqual(mockTokens);
