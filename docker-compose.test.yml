@@ -1,8 +1,10 @@
 services:
-  postgres:
+  postgres_test:
     image: postgres:17
     restart: always
-    container_name: nestjs_shop_postgres_container
+    container_name: nestjs_shop_postgres_test_container
+    env_file:
+      - .env.test
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -10,7 +12,7 @@ services:
     ports:
       - '${DB_PORT}:5432'
     volumes:
-      - nestjs_shop_postgres_data:/var/lib/postgresql/data
+      - nestjs_shop_postgres_test_data:/var/lib/postgresql/data
 
 volumes:
-  nestjs_shop_postgres_data:
+  nestjs_shop_postgres_test_data:
