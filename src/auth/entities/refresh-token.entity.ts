@@ -11,7 +11,7 @@ export class RefreshToken {
 
 	@Index()
 	@Column()
-	refreshToken: string;
+	hashedToken: string;
 
 	@Column({ type: 'text', nullable: true })
 	agent: string | null;

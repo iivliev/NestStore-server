@@ -33,8 +33,8 @@ export class AuthController {
 
 	@UseGuards(RefreshTokenGuard)
 	@Post('sign-out')
-	async signOut(@RefreshToken() token: string) {
-		await this.authService.signOut(token);
+	async signOut(@RefreshToken() token: string, @ActiveUser('sub') userId: number) {
+		await this.authService.signOut(userId, token);
 		return { clearRefreshToken: true };
 	}
 

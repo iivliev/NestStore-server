@@ -235,12 +235,13 @@ describe('AuthService', () => {
 	describe('signOut', () => {
 		it('should revoke refresh token successfully', async () => {
 			const token = 'valid-refresh-token';
+			const userId = 1;
 
 			mockJwtService.revokeRefreshToken.mockResolvedValue(undefined);
 
-			await service.signOut(token);
+			await service.signOut(userId, token);
 
-			expect(mockJwtService.revokeRefreshToken).toHaveBeenCalledWith(token);
+			expect(mockJwtService.revokeRefreshToken).toHaveBeenCalledWith(userId, token);
 			expect(mockJwtService.revokeRefreshToken).toHaveBeenCalledTimes(1);
 		});
 	});

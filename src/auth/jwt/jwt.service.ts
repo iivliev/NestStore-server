@@ -8,6 +8,7 @@ import { IsNull, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InsertRefreshTokenParams, SignTokenPayload } from '../types/jwt.type';
+import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
 
 @Injectable()
 export class JwtService {
@@ -19,6 +20,8 @@ export class JwtService {
 		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
 
 		private readonly jwtService: NestJwtService,
+
+		private readonly hashingProvider: HashingProvider,
 	) {}
 
 	async signToken<T>({ sub, expiresIn, secret, payload }: SignTokenPayload<T>) {
@@ -56,41 +59,63 @@ export class JwtService {
 		};
 	}
 
-	async insertRefreshToken({ userId, refreshToken, agent }: InsertRefreshTokenParams) {
-		const decodedToken = this.jwtService.decode<JwtDecoded>(refreshToken);
-
-		const expiresAt = new Date(decodedToken.exp * 1000);
-
-		const activeTokens = await this.refreshTokenRepository.find({
+	async findActiveRefreshTokens(userId: number): Promise<RefreshToken[]> {
+		return await this.refreshTokenRepository.find({
 			where: { user: { id: userId }, revokedAt: IsNull() },
 			order: { createdAt: 'ASC' },
 		});
+	}
+
+	async insertRefreshToken({ userId, refreshToken, agent }: InsertRefreshTokenParams) {
+		const decodedToken = this.jwtService.decode<JwtDecoded>(refreshToken);
+
+		if (!decodedToken || !decodedToken.exp) {
+			throw new BadRequestException('Could not decode refresh token or missing exp claim');
+		}
+
+		const expiresAt = new Date(decodedToken.exp * 1000);
+
+		const activeTokens = await this.findActiveRefreshTokens(userId);
 
 		if (activeTokens.length >= this.jwtConfiguration.maxActiveTokens) {
-			await this.refreshTokenRepository.delete(activeTokens[0].id);
+			activeTokens[0].revokedAt = new Date();
+			await this.refreshTokenRepository.save(activeTokens[0]);
 		}
+
+		const hashedToken = await this.hashingProvider.hash(refreshToken);
 
 		await this.refreshTokenRepository.insert({
 			user: { id: userId },
 			agent,
-			refreshToken,
+			hashedToken,
 			expiresAt,
 		});
 	}
 
-	async refreshTokens(userId: number, refreshToken: string, agent: string) {
-		const result = await this.refreshTokenRepository.update(
-			{
-				user: { id: userId },
-				refreshToken,
-				revokedAt: IsNull(),
-			},
-			{ revokedAt: new Date() },
-		);
+	async getMatchedRefreshToken(userId: number, refreshToken: string): Promise<RefreshToken> {
+		// We have to fetch all active tokens and compare the hash because we don't store the plain token.
+		// User has limited number of active tokens, so this is not a performance concern and allows us to keep tokens secure in case of DB leak.
+		const tokens = await this.findActiveRefreshTokens(userId);
 
-		if (result.affected === 0) {
+		let matchingToken: RefreshToken | undefined = undefined;
+
+		for (const token of tokens) {
+			const isMatch = await this.hashingProvider.compare(refreshToken, token.hashedToken);
+			if (isMatch) {
+				matchingToken = token;
+				break;
+			}
+		}
+
+		if (!matchingToken) {
 			throw new UnauthorizedException('Refresh token not found or already revoked');
 		}
+
+		return matchingToken;
+	}
+
+	async refreshTokens(userId: number, refreshToken: string, agent: string) {
+		await this.revokeRefreshToken(userId, refreshToken);
 
 		const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
 			id: userId,
@@ -108,9 +133,15 @@ export class JwtService {
 		};
 	}
 
-	async revokeRefreshToken(refreshToken: string): Promise<void> {
+	async revokeRefreshToken(userId: number, refreshToken: string): Promise<void> {
+		const matchedToken = await this.getMatchedRefreshToken(userId, refreshToken);
+
 		const result = await this.refreshTokenRepository.update(
-			{ refreshToken, revokedAt: IsNull() },
+			{
+				user: { id: userId },
+				hashedToken: matchedToken.hashedToken,
+				revokedAt: IsNull(),
+			},
 			{ revokedAt: new Date() },
 		);
 

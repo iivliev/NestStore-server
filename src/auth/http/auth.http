@@ -27,10 +27,10 @@ Content-Type: {{contentType}}
 # Note: This requires a valid refresh token cookie from sign-in/sign-up
 POST {{baseUrl}}/auth/refresh-tokens
 Content-Type: {{contentType}}
-Cookie: refreshToken=REPLACE_WITH_VALID_REFRESH_TOKEN_COOKIE
+Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImlhdCI6MTc3MjcwNjA1OSwiZXhwIjoxNzcyNzkyNDU5LCJhdWQiOiJuZXN0anMtc2hvcC1jbGllbnQiLCJpc3MiOiJuZXN0anMtc2hvcC1hcGkifQ.1W1oWw0ibNG956sUfKODjU45uY5M1r40Ik9g67YYu2M
 
 ### Sign Out - Logout and revoke refresh token
 # Note: This requires a valid refresh token cookie
 POST {{baseUrl}}/auth/sign-out
 Content-Type: {{contentType}}
-Cookie: refreshToken=REPLACE_WITH_VALID_REFRESH_TOKEN_COOKIE
+Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjgsImlhdCI6MTc3MjcwNjExMSwiZXhwIjoxNzcyNzkyNTExLCJhdWQiOiJuZXN0anMtc2hvcC1jbGllbnQiLCJpc3MiOiJuZXN0anMtc2hvcC1hcGkifQ.awUPQ1_AuTLtdklnt2K4qHDI4gqVb4BfjcnSoh-Y7f8

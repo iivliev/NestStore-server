@@ -101,12 +101,13 @@ describe('AuthController', () => {
 
 	it('should sign out successfully and return clearRefreshToken flag', async () => {
 		const refreshToken = 'valid-refresh-token';
+		const userId = 1;
 
 		mockAuthService.signOut.mockResolvedValue(undefined);
 
-		const result = await controller.signOut(refreshToken);
+		const result = await controller.signOut(refreshToken, userId);
 
-		expect(mockAuthService.signOut).toHaveBeenCalledWith(refreshToken);
+		expect(mockAuthService.signOut).toHaveBeenCalledWith(userId, refreshToken);
 		expect(mockAuthService.signOut).toHaveBeenCalledTimes(1);
 		expect(result).toEqual({ clearRefreshToken: true });
 	});

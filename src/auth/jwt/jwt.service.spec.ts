@@ -8,6 +8,7 @@ import jwtConfig from 'src/infrastructure/config/jwt.config';
 import { UsersService } from 'src/users/users.service';
 import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/users/entities/user.entity';
+import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
 
 describe('JwtService', () => {
 	let service: JwtService;
@@ -37,6 +38,7 @@ describe('JwtService', () => {
 		insert: jest.fn(),
 		update: jest.fn(),
 		delete: jest.fn(),
+		save: jest.fn(),
 	};
 
 	const mockNestJwtService = {
@@ -46,6 +48,11 @@ describe('JwtService', () => {
 
 	const mockUsersService = {
 		findOneById: jest.fn(),
+	};
+
+	const mockHashingProvider = {
+		hash: jest.fn(),
+		compare: jest.fn(),
 	};
 
 	beforeEach(async () => {
@@ -67,6 +74,10 @@ describe('JwtService', () => {
 				{
 					provide: UsersService,
 					useValue: mockUsersService,
+				},
+				{
+					provide: HashingProvider,
+					useValue: mockHashingProvider,
 				},
 			],
 		}).compile();
@@ -151,6 +162,7 @@ describe('JwtService', () => {
 	describe('insertRefreshToken', () => {
 		it('should insert a refresh token successfully', async () => {
 			const mockRefreshToken = 'refresh.token';
+			const mockHashedToken = 'hashed.token';
 			const mockDecodedToken = {
 				sub: 1,
 				iat: Math.floor(Date.now() / 1000),
@@ -159,6 +171,7 @@ describe('JwtService', () => {
 
 			mockNestJwtService.decode.mockReturnValue(mockDecodedToken);
 			mockRefreshTokenRepository.find.mockResolvedValue([]);
+			mockHashingProvider.hash.mockResolvedValue(mockHashedToken);
 
 			await service.insertRefreshToken({
 				userId: mockUser.id,
@@ -171,17 +184,19 @@ describe('JwtService', () => {
 				where: { user: { id: mockUser.id }, revokedAt: IsNull() },
 				order: { createdAt: 'ASC' },
 			});
+			expect(mockHashingProvider.hash).toHaveBeenCalledWith(mockRefreshToken);
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
 				user: { id: mockUser.id },
 				agent: 'Mozilla/5.0',
-				refreshToken: mockRefreshToken,
+				hashedToken: mockHashedToken,
 				expiresAt: new Date(mockDecodedToken.exp * 1000),
 			});
-			expect(mockRefreshTokenRepository.delete).not.toHaveBeenCalled();
+			expect(mockRefreshTokenRepository.save).not.toHaveBeenCalled();
 		});
 
-		it('should delete oldest token when max active tokens limit is reached', async () => {
+		it('should revoke oldest token when max active tokens limit is reached', async () => {
 			const mockRefreshToken = 'refresh.token';
+			const mockHashedToken = 'hashed.token';
 			const mockDecodedToken = {
 				sub: 1,
 				iat: Math.floor(Date.now() / 1000),
@@ -190,7 +205,7 @@ describe('JwtService', () => {
 
 			const activeTokens = Array.from({ length: 5 }, (_, i) => ({
 				id: i + 1,
-				refreshToken: `token-${i}`,
+				hashedToken: `hashed-token-${i}`,
 				user: mockUser,
 				agent: 'Mozilla/5.0',
 				expiresAt: new Date(),
@@ -200,6 +215,7 @@ describe('JwtService', () => {
 
 			mockNestJwtService.decode.mockReturnValue(mockDecodedToken);
 			mockRefreshTokenRepository.find.mockResolvedValue(activeTokens);
+			mockHashingProvider.hash.mockResolvedValue(mockHashedToken);
 
 			await service.insertRefreshToken({
 				userId: mockUser.id,
@@ -207,12 +223,16 @@ describe('JwtService', () => {
 				agent: 'Mozilla/5.0',
 			});
 
-			expect(mockRefreshTokenRepository.delete).toHaveBeenCalledWith(1);
+			expect(mockRefreshTokenRepository.save).toHaveBeenCalledWith({
+				...activeTokens[0],
+				revokedAt: expect.any(Date) as Date,
+			});
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalled();
 		});
 
 		it('should handle null agent', async () => {
 			const mockRefreshToken = 'refresh.token';
+			const mockHashedToken = 'hashed.token';
 			const mockDecodedToken = {
 				sub: 1,
 				iat: Math.floor(Date.now() / 1000),
@@ -221,6 +241,7 @@ describe('JwtService', () => {
 
 			mockNestJwtService.decode.mockReturnValue(mockDecodedToken);
 			mockRefreshTokenRepository.find.mockResolvedValue([]);
+			mockHashingProvider.hash.mockResolvedValue(mockHashedToken);
 
 			await service.insertRefreshToken({
 				userId: mockUser.id,
@@ -231,7 +252,7 @@ describe('JwtService', () => {
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
 				user: { id: mockUser.id },
 				agent: null,
-				refreshToken: mockRefreshToken,
+				hashedToken: mockHashedToken,
 				expiresAt: new Date(mockDecodedToken.exp * 1000),
 			});
 		});
@@ -242,6 +263,8 @@ describe('JwtService', () => {
 			const mockOldRefreshToken = 'old.refresh.token';
 			const mockAccessToken = 'new.access.token';
 			const mockNewRefreshToken = 'new.refresh.token';
+			const mockHashedToken = 'hashed.token';
+			const mockHashedOldToken = 'hashed.old.token';
 			const mockAgent = 'Mozilla/5.0';
 			const mockDecodedToken = {
 				sub: 1,
@@ -249,17 +272,30 @@ describe('JwtService', () => {
 				exp: Math.floor(Date.now() / 1000) + 86400,
 			};
 
+			const mockStoredToken = {
+				id: 1,
+				hashedToken: mockHashedOldToken,
+				user: mockUser,
+				agent: mockAgent,
+				expiresAt: new Date(),
+				createdAt: new Date(),
+				revokedAt: null,
+			};
+
+			mockRefreshTokenRepository.find.mockResolvedValue([mockStoredToken]);
+			mockHashingProvider.compare.mockResolvedValue(true);
 			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
 			mockNestJwtService.signAsync.mockResolvedValueOnce(mockAccessToken).mockResolvedValueOnce(mockNewRefreshToken);
 			mockNestJwtService.decode.mockReturnValue(mockDecodedToken);
-			mockRefreshTokenRepository.find.mockResolvedValue([]);
+			mockHashingProvider.hash.mockResolvedValue(mockHashedToken);
 
 			const result = await service.refreshTokens(1, mockOldRefreshToken, mockAgent);
 
+			expect(mockHashingProvider.compare).toHaveBeenCalledWith(mockOldRefreshToken, mockHashedOldToken);
 			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
 				{
 					user: { id: 1 },
-					refreshToken: mockOldRefreshToken,
+					hashedToken: mockHashedOldToken,
 					revokedAt: IsNull(),
 				},
 				{ revokedAt: expect.any(Date) as string },
@@ -270,7 +306,7 @@ describe('JwtService', () => {
 			expect(mockRefreshTokenRepository.insert).toHaveBeenCalledWith({
 				user: { id: 1 },
 				agent: mockAgent,
-				refreshToken: mockNewRefreshToken,
+				hashedToken: mockHashedToken,
 				expiresAt: new Date(mockDecodedToken.exp * 1000),
 			});
 
@@ -284,20 +320,16 @@ describe('JwtService', () => {
 			const mockOldRefreshToken = 'invalid.token';
 			const mockAgent = 'Mozilla/5.0';
 
-			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
+			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
 			await expect(service.refreshTokens(1, mockOldRefreshToken, mockAgent)).rejects.toThrow(
 				'Refresh token not found or already revoked',
 			);
 
-			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
-				{
-					user: { id: 1 },
-					refreshToken: mockOldRefreshToken,
-					revokedAt: IsNull(),
-				},
-				{ revokedAt: expect.any(Date) as string },
-			);
+			expect(mockRefreshTokenRepository.find).toHaveBeenCalledWith({
+				where: { user: { id: 1 }, revokedAt: IsNull() },
+				order: { createdAt: 'ASC' },
+			});
 
 			expect(mockNestJwtService.signAsync).not.toHaveBeenCalled();
 			expect(mockRefreshTokenRepository.insert).not.toHaveBeenCalled();
@@ -305,8 +337,21 @@ describe('JwtService', () => {
 
 		it('should throw UnauthorizedException when token already revoked', async () => {
 			const mockOldRefreshToken = 'revoked.token';
+			const mockHashedOldToken = 'hashed.revoked.token';
 			const mockAgent = 'Mozilla/5.0';
 
+			const mockStoredToken = {
+				id: 1,
+				hashedToken: mockHashedOldToken,
+				user: mockUser,
+				agent: mockAgent,
+				expiresAt: new Date(),
+				createdAt: new Date(),
+				revokedAt: null,
+			};
+
+			mockRefreshTokenRepository.find.mockResolvedValue([mockStoredToken]);
+			mockHashingProvider.compare.mockResolvedValue(true);
 			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
 
 			await expect(service.refreshTokens(999, mockOldRefreshToken, mockAgent)).rejects.toThrow(
@@ -316,35 +361,70 @@ describe('JwtService', () => {
 	});
 
 	describe('revokeRefreshToken', () => {
-		it('should revoke a valid refresh token', async () => {
+		it('should revoke a refresh token', async () => {
 			const mockRefreshToken = 'refresh.token';
+			const mockHashedToken = 'hashed.token';
+			const mockUserId = 1;
+
+			const mockStoredToken = {
+				id: 1,
+				hashedToken: mockHashedToken,
+				user: mockUser,
+				agent: 'Mozilla/5.0',
+				expiresAt: new Date(),
+				createdAt: new Date(),
+				revokedAt: null,
+			};
+
+			mockRefreshTokenRepository.find.mockResolvedValue([mockStoredToken]);
+			mockHashingProvider.compare.mockResolvedValue(true);
 			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 1 });
 
-			await service.revokeRefreshToken(mockRefreshToken);
+			await service.revokeRefreshToken(mockUserId, mockRefreshToken);
 
+			expect(mockHashingProvider.compare).toHaveBeenCalledWith(mockRefreshToken, mockHashedToken);
 			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
-				{ refreshToken: mockRefreshToken, revokedAt: IsNull() },
+				{ user: { id: mockUserId }, hashedToken: mockHashedToken, revokedAt: IsNull() },
 				{ revokedAt: expect.any(Date) as string },
 			);
 		});
 
-		it('should throw BadRequestException when token not found', async () => {
+		it('should throw UnauthorizedException when token not found', async () => {
 			const mockRefreshToken = 'invalid.token';
-			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
+			const mockUserId = 1;
 
-			await expect(service.revokeRefreshToken(mockRefreshToken)).rejects.toThrow(BadRequestException);
+			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
-			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
-				{ refreshToken: mockRefreshToken, revokedAt: IsNull() },
-				{ revokedAt: expect.any(Date) as string },
+			await expect(service.revokeRefreshToken(mockUserId, mockRefreshToken)).rejects.toThrow(
+				'Refresh token not found or already revoked',
 			);
+
+			expect(mockRefreshTokenRepository.find).toHaveBeenCalledWith({
+				where: { user: { id: mockUserId }, revokedAt: IsNull() },
+				order: { createdAt: 'ASC' },
+			});
 		});
 
-		it('should throw BadRequestException when token already revoked', async () => {
+		it('should throw BadRequestException when token update fails', async () => {
 			const mockRefreshToken = 'already.revoked.token';
+			const mockHashedToken = 'hashed.token';
+			const mockUserId = 1;
+
+			const mockStoredToken = {
+				id: 1,
+				hashedToken: mockHashedToken,
+				user: mockUser,
+				agent: 'Mozilla/5.0',
+				expiresAt: new Date(),
+				createdAt: new Date(),
+				revokedAt: null,
+			};
+
+			mockRefreshTokenRepository.find.mockResolvedValue([mockStoredToken]);
+			mockHashingProvider.compare.mockResolvedValue(true);
 			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
 
-			await expect(service.revokeRefreshToken(mockRefreshToken)).rejects.toThrow(BadRequestException);
+			await expect(service.revokeRefreshToken(mockUserId, mockRefreshToken)).rejects.toThrow(BadRequestException);
 		});
 	});
 });
