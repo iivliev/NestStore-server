@@ -10,9 +10,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { RefreshTokenCleanupService } from './jwt/refresh-token-cleanup-schedule.service';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
+import { AuthProvider } from './entities/auth-providers.entity';
 
 @Module({
-	imports: [JwtModule.register({}), TypeOrmModule.forFeature([RefreshToken]), UsersModule, HashingModule],
+	imports: [JwtModule.register({}), TypeOrmModule.forFeature([AuthProvider, RefreshToken]), UsersModule, HashingModule],
 	controllers: [AuthController],
 	providers: [AuthService, JwtService, AccessTokenGuard, RefreshTokenGuard, RefreshTokenCleanupService],
 	exports: [AuthService, AccessTokenGuard],

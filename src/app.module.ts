@@ -12,6 +12,7 @@ import appConfig from './infrastructure/config/app.config';
 import jwtConfig from './infrastructure/config/jwt.config';
 import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
 import { ScheduleModule } from '@nestjs/schedule';
+import authProvidersConfig from './infrastructure/config/auth-providers.config';
 
 const ENV = process.env.NODE_ENV;
 
@@ -21,7 +22,7 @@ const ENV = process.env.NODE_ENV;
 		ConfigModule.forRoot({
 			isGlobal: true,
 			envFilePath: !ENV ? '.env' : `.env.${ENV}`,
-			load: [appConfig, databaseConfig, jwtConfig],
+			load: [appConfig, databaseConfig, jwtConfig, authProvidersConfig],
 			validationSchema,
 		}),
 		TypeOrmModule.forRootAsync({

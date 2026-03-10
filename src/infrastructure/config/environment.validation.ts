@@ -25,4 +25,6 @@ export default Joi.object({
 	REFRESH_TOKEN_COOKIE_NAME: Joi.string().default('refreshToken'),
 	REFRESH_TOKEN_COOKIE_PATH: Joi.string().default('/auth'),
 	REFRESH_TOKEN_COOKIE_AGE: Joi.number().default(7 * 24 * 60 * 60 * 1000),
+	GOOGLE_CLIENT_ID: Joi.string().required(),
+	GOOGLE_CLIENT_SECRET: Joi.string().required(),
 });

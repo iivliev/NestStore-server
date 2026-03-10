@@ -1,4 +1,5 @@
 import { Exclude } from 'class-transformer';
+import { AuthProvider } from 'src/auth/entities/auth-providers.entity';
 import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -13,13 +14,16 @@ export class User {
 	@Column()
 	name: string;
 
-	@Column()
+	@Column({ nullable: true })
 	@Exclude()
-	password: string;
+	password?: string;
 
 	@Column({ default: false })
 	confirmed: boolean;
 
 	@OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
 	refreshTokens: RefreshToken[];
+
+	@OneToMany(() => AuthProvider, (authProvider) => authProvider.user)
+	authProviders: AuthProvider[];
 }
