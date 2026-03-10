@@ -1,5 +1,9 @@
 import * as Joi from 'joi';
 
+/**
+ * ValidationSchema that defines the expected structure and constraints for environment variables used in the application.
+ *
+ */
 export default Joi.object({
 	NODE_ENV: Joi.string().valid('development', 'test', 'production', 'staging').default('development'),
 	CLIENT_URL: Joi.string().uri().required(),

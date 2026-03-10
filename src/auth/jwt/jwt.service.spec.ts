@@ -194,13 +194,14 @@ describe('JwtService', () => {
 		});
 
 		it('should revoke oldest token when max active tokens limit is reached', async () => {
-			const activeTokens = Array.from({ length: 5 }, (_, i) => ({
+			const MAX_ACTIVE_TOKENS = mockJwtConfig.maxActiveTokens;
+			const activeTokens = Array.from({ length: MAX_ACTIVE_TOKENS }, (_, i) => ({
 				id: i + 1,
 				hashedToken: `hashed-token-${i}`,
 				user: mockUser,
 				agent: 'Mozilla/5.0',
 				expiresAt: new Date(),
-				createdAt: new Date(Date.now() - (5 - i) * 1000),
+				createdAt: new Date(Date.now() - (MAX_ACTIVE_TOKENS - i) * 1000),
 				revokedAt: null,
 			}));
 

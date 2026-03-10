@@ -6,6 +6,12 @@ import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import jwtConfig from 'src/infrastructure/config/jwt.config';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
+/**
+ * AccessTokenGuard is responsible for validating the access token provided in the request headers.
+ * It checks for the presence of the token, verifies its validity using the JwtService, and attaches the decoded payload to the request object
+ * for further processing. If the token is missing or invalid, it throws an UnauthorizedException.
+ *
+ */
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
 	constructor(

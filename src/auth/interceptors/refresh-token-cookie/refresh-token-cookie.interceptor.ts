@@ -9,6 +9,11 @@ interface TokenResponse {
 	clearRefreshToken?: boolean;
 }
 
+/**
+ * RefreshTokenCookieInterceptor is responsible for handling the refresh token in the response.
+ * It checks if the response contains a refresh token or a flag to clear the refresh token cookie.
+ *
+ */
 @Injectable()
 export class RefreshTokenCookieInterceptor implements NestInterceptor<
 	TokenResponse,

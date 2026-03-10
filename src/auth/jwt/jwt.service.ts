@@ -66,6 +66,12 @@ export class JwtService {
 		});
 	}
 
+	/**
+	 * insertRefreshToken is responsible for inserting a new refresh token into the database.
+	 * It decodes the token to get the expiration time, checks if the user has exceeded the maximum number of active tokens,
+	 * and if so, revokes the oldest one before inserting the new token. The token is hashed before being stored for security reasons.
+	 *
+	 */
 	async insertRefreshToken({ userId, refreshToken, agent }: InsertRefreshTokenParams) {
 		const decodedToken = this.jwtService.decode<JwtDecoded>(refreshToken);
 
@@ -92,9 +98,13 @@ export class JwtService {
 		});
 	}
 
+	/**
+	 * getMatchedRefreshToken is responsible for finding a refresh token in the database that matches the provided plain refresh token.
+	 * Since we store only the hashed version of the token, we need to fetch all active tokens for the user and compare their hashes
+	 * with the provided token. If a match is found, it returns the corresponding RefreshToken entity; otherwise, it throws an UnauthorizedException.
+	 *
+	 */
 	async getMatchedRefreshToken(userId: number, refreshToken: string): Promise<RefreshToken> {
-		// We have to fetch all active tokens and compare the hash because we don't store the plain token.
-		// User has limited number of active tokens, so this is not a performance concern and allows us to keep tokens secure in case of DB leak.
 		const tokens = await this.findActiveRefreshTokens(userId);
 
 		let matchingToken: RefreshToken | undefined = undefined;

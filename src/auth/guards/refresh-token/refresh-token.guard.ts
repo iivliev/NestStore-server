@@ -6,6 +6,12 @@ import { REFRESH_TOKEN_KEY, REQUEST_USER_KEY } from 'src/auth/constants/auth.con
 import jwtConfig from 'src/infrastructure/config/jwt.config';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
+/**
+ * Is guard that validates the refresh token from the request cookies.
+ * It checks for the presence of the refresh token, verifies its validity using the JwtService, and attaches the decoded payload to the request object
+ * for further processing. If the token is missing or invalid, it throws an UnauthorizedException.
+ *
+ */
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
 	constructor(

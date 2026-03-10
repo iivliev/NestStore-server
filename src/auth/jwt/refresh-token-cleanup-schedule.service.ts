@@ -4,6 +4,10 @@ import { RefreshToken } from '../entities/refresh-token.entity';
 import { IsNull, LessThan, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
+/**
+ * RefreshTokenCleanupService is responsible for periodically cleaning up expired and revoked refresh tokens from the database.
+ *
+ */
 @Injectable()
 export class RefreshTokenCleanupService {
 	constructor(

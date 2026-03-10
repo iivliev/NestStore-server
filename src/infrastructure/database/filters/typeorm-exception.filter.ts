@@ -11,6 +11,10 @@ import {
 import { Request, Response } from 'express';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
 
+/**
+ * TypeOrmExceptionFilter is a global exception filter that catches exceptions thrown by TypeORM and translates them into appropriate HTTP responses.
+ *
+ */
 @Injectable()
 export class TypeOrmExceptionFilter implements ExceptionFilter {
 	catch(exception: unknown, host: ArgumentsHost) {
@@ -26,25 +30,23 @@ export class TypeOrmExceptionFilter implements ExceptionFilter {
 			});
 		}
 
+		/**
+		 * PostgreSQL error handling based on error codes:
+		 */
 		if (exception instanceof QueryFailedError) {
 			const drv: any = (exception as any)?.driverError || {};
-			const code = drv?.code || drv?.errno || drv?.name;
-			const constraint = drv?.constraint;
+			const code = drv?.code;
 
 			switch (code) {
 				case '23505': // unique_violation
-				case 'ER_DUP_ENTRY': // MySQL duplicate
-				case 1062: // MySQL numeric
 					return res.status(HttpStatus.CONFLICT).json({
 						statusCode: HttpStatus.CONFLICT,
 						path: req.url,
 						message: 'Duplicate resource',
-						meta: constraint ? { constraint } : undefined,
+						meta: drv?.constraint ? { constraint: drv.constraint } : undefined,
 					});
 
 				case '23503': // foreign_key_violation
-				case 'ER_NO_REFERENCED_ROW_2':
-				case 1452:
 					return res.status(HttpStatus.BAD_REQUEST).json({
 						statusCode: HttpStatus.BAD_REQUEST,
 						path: req.url,
@@ -64,7 +66,6 @@ export class TypeOrmExceptionFilter implements ExceptionFilter {
 						statusCode: HttpStatus.SERVICE_UNAVAILABLE,
 						path: req.url,
 						message: 'Temporary database conflict. Please retry.',
-						// Optional: guidance for clients implementing retries
 						retryable: true,
 					});
 			}

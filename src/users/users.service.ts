@@ -32,8 +32,8 @@ export class UsersService {
 		return this.usersRepository.save(user);
 	}
 
-	findAll() {
-		return this.usersRepository.find();
+	async findAll() {
+		return await this.usersRepository.find();
 	}
 
 	async findOneById(id: number) {
