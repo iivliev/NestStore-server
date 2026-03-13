@@ -1,27 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import {
-	ArgumentsHost,
-	ExceptionFilter,
-	HttpException,
-	HttpStatus,
-	Injectable,
-	InternalServerErrorException,
-} from '@nestjs/common';
+import { ArgumentsHost, ExceptionFilter, HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
 
-/**
- * TypeOrmExceptionFilter is a global exception filter that catches exceptions thrown by TypeORM and translates them into appropriate HTTP responses.
- *
- */
 @Injectable()
-export class TypeOrmExceptionFilter implements ExceptionFilter {
+export class GlobalExceptionFilter implements ExceptionFilter {
+	private readonly logger = new Logger(GlobalExceptionFilter.name);
+
 	catch(exception: unknown, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();
 		const res = ctx.getResponse<Response>();
 		const req = ctx.getRequest<Request>();
 
+		// TypeORM errors
 		if (exception instanceof EntityNotFoundError) {
 			return res.status(HttpStatus.NOT_FOUND).json({
 				statusCode: HttpStatus.NOT_FOUND,
@@ -30,9 +22,6 @@ export class TypeOrmExceptionFilter implements ExceptionFilter {
 			});
 		}
 
-		/**
-		 * PostgreSQL error handling based on error codes:
-		 */
 		if (exception instanceof QueryFailedError) {
 			const drv: any = (exception as any)?.driverError || {};
 			const code = drv?.code;
@@ -77,10 +66,26 @@ export class TypeOrmExceptionFilter implements ExceptionFilter {
 			});
 		}
 
+		// NestJS HttpException
 		if (exception instanceof HttpException) {
-			throw exception;
+			const status = exception.getStatus ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+
+			const response = exception.getResponse ? exception.getResponse() : exception.message;
+
+			return res.status(status).json({
+				statusCode: status,
+				path: req.url,
+				message: typeof response === 'string' ? response : (response as any).message || response,
+			});
 		}
 
-		throw new InternalServerErrorException();
+		// Unknown / unhandled errors
+		this.logger.error(`Unhandled exception for ${req.method} ${req.url}`, (exception as any)?.stack || exception);
+
+		return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+			statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+			path: req.url,
+			message: 'Internal server error',
+		});
 	}
 }

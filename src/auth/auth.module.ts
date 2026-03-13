@@ -13,6 +13,8 @@ import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
 import { AuthProvider } from './entities/auth-providers.entity';
 import { ConfigModule } from '@nestjs/config';
 import authConfig from './config/auth.config';
+import { GoogleAuthService } from './providers/google/google.service';
+import { GoogleController } from './providers/google/google.controller';
 
 @Module({
 	imports: [
@@ -22,8 +24,15 @@ import authConfig from './config/auth.config';
 		UsersModule,
 		HashingModule,
 	],
-	controllers: [AuthController],
-	providers: [AuthService, JwtService, AccessTokenGuard, RefreshTokenGuard, RefreshTokenCleanupService],
+	controllers: [AuthController, GoogleController],
+	providers: [
+		AuthService,
+		JwtService,
+		AccessTokenGuard,
+		RefreshTokenGuard,
+		RefreshTokenCleanupService,
+		GoogleAuthService,
+	],
 	exports: [AuthService, AccessTokenGuard],
 })
 export class AuthModule {}

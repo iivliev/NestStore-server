@@ -4,5 +4,5 @@ export enum AuthType {
 }
 
 export enum AuthProviderType {
-	Google = 'google',
+	GOOGLE = 'google',
 }

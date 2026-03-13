@@ -8,6 +8,8 @@ export default Joi.object({
 	NODE_ENV: Joi.string().valid('development', 'test', 'production', 'staging').default('development'),
 	CLIENT_URL: Joi.string().uri().required(),
 	PORT: Joi.number().port().default(3000),
+	SESSION_SECRET: Joi.string().required(),
+	SESSION_COOKIE_MAX_AGE: Joi.number().default(600000),
 	DB_PORT: Joi.number().port().default(5432),
 	DB_USER: Joi.string().required(),
 	DB_PASSWORD: Joi.string().required(),
@@ -27,5 +29,8 @@ export default Joi.object({
 	REFRESH_TOKEN_COOKIE_AGE: Joi.number().default(7 * 24 * 60 * 60 * 1000),
 	GOOGLE_CLIENT_ID: Joi.string().required(),
 	GOOGLE_CLIENT_SECRET: Joi.string().required(),
-	GOOGLE_REDIRECT_URI: Joi.string().uri().required(),
+	GOOGLE_REDIRECT_URL: Joi.string().uri().required(),
+	GOOGLE_AUTH_URL: Joi.string().uri().default('https://accounts.google.com/o/oauth2/v2/auth'),
+	GOOGLE_TOKEN_URL: Joi.string().uri().default('https://oauth2.googleapis.com/token'),
+	GOOGLE_AUTH_SCOPE: Joi.string().required(),
 });

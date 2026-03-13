@@ -1,7 +1,8 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { CallHandler, ExecutionContext, Inject, Injectable, NestInterceptor } from '@nestjs/common';
 import { Response } from 'express';
 import { map } from 'rxjs/operators';
+import authConfig from 'src/auth/config/auth.config';
+import { type ConfigType } from '@nestjs/config';
 
 interface TokenResponse {
 	refreshToken?: string;
@@ -19,7 +20,10 @@ export class RefreshTokenCookieInterceptor implements NestInterceptor<
 	TokenResponse,
 	Omit<TokenResponse, 'refreshToken' | 'clearRefreshToken'>
 > {
-	constructor(private configService: ConfigService) {}
+	constructor(
+		@Inject(authConfig.KEY)
+		private readonly authConfiguration: ConfigType<typeof authConfig>,
+	) {}
 
 	intercept(context: ExecutionContext, next: CallHandler<TokenResponse>) {
 		const response = context.switchToHttp().getResponse<Response>();
@@ -31,19 +35,19 @@ export class RefreshTokenCookieInterceptor implements NestInterceptor<
 				const { refreshToken, clearRefreshToken, ...rest } = data;
 
 				if (clearRefreshToken) {
-					response.clearCookie(this.configService.get<string>('jwt.refreshTokenCookieName')!, {
-						path: this.configService.get<string>('jwt.refreshTokenCookiePath'),
+					response.clearCookie(this.authConfiguration.refreshTokenCookieName, {
+						path: this.authConfiguration.refreshTokenCookiePath,
 					});
 					return {};
 				}
 
 				if (refreshToken) {
-					response.cookie(this.configService.get<string>('jwt.refreshTokenCookieName')!, refreshToken, {
+					response.cookie(this.authConfiguration.refreshTokenCookieName, refreshToken, {
 						httpOnly: true,
-						secure: this.configService.get<string>('NODE_ENV') === 'production' ? true : false,
+						secure: process.env.NODE_ENV === 'production' ? true : false,
 						sameSite: 'strict',
-						path: this.configService.get<string>('jwt.refreshTokenCookiePath'),
-						maxAge: this.configService.get<number>('jwt.refreshTokenCookieAge'),
+						path: this.authConfiguration.refreshTokenCookiePath,
+						maxAge: this.authConfiguration.refreshTokenCookieAge,
 					});
 				}
 

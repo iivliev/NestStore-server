@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm/repository/Repository.js';
 import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
+import { CreateUserParams } from './types/user.type';
 
 @Injectable()
 export class UsersService {
@@ -15,19 +15,12 @@ export class UsersService {
 		private readonly hashingProvider: HashingProvider,
 	) {}
 
-	async create(createUserDto: CreateUserDto) {
-		const existingUser = await this.findOneByEmail(createUserDto.email);
+	async create(user: CreateUserParams) {
+		const existingUser = await this.findOneByEmail(user.email);
 
 		if (existingUser) {
-			throw new BadRequestException(`User with email ${createUserDto.email} already exists`);
+			throw new BadRequestException(`User with email ${user.email} already exists`);
 		}
-
-		const hashedPassword = await this.hashingProvider.hash(createUserDto.password);
-
-		const user = this.usersRepository.create({
-			...createUserDto,
-			password: hashedPassword,
-		});
 
 		return this.usersRepository.save(user);
 	}

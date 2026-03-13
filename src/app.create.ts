@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import session from 'express-session';
 
 export const createApp = (app: INestApplication) => {
 	const configService = app.get(ConfigService);
@@ -14,6 +15,19 @@ export const createApp = (app: INestApplication) => {
 			forbidNonWhitelisted: true,
 			whitelist: true,
 			transform: true,
+		}),
+	);
+
+	app.use(
+		session({
+			secret: configService.get<string>('SESSION_SECRET')!,
+			resave: false,
+			saveUninitialized: false,
+			cookie: {
+				httpOnly: true,
+				secure: configService.get('NODE_ENV') === 'production',
+				maxAge: configService.get<number>('SESSION_COOKIE_AGE'),
+			},
 		}),
 	);
 

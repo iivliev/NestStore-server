@@ -159,4 +159,10 @@ export class JwtService {
 			throw new BadRequestException('Refresh token not found or already revoked');
 		}
 	}
+
+	async generateAndStoreTokens(userId: number, agent: string | null) {
+		const { accessToken, refreshToken } = await this.generateTokens({ id: userId });
+		await this.insertRefreshToken({ userId, refreshToken, agent });
+		return { accessToken, refreshToken };
+	}
 }

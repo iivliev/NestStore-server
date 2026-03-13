@@ -26,7 +26,7 @@ export class RefreshTokenGuard implements CanActivate {
 
 		const token = request.cookies[this.authConfiguration.refreshTokenCookieName] as string;
 
-		if (!token) {
+		if (!token.length) {
 			throw new UnauthorizedException();
 		}
 

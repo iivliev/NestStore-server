@@ -4,10 +4,18 @@ import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { JwtService } from './jwt/jwt.service';
 import { UsersService } from 'src/users/users.service';
 import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
+import { AuthProvider } from './entities/auth-providers.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { AuthProviderType } from './enums/auth-type.enum';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
 	constructor(
+		@InjectRepository(AuthProvider)
+		private readonly authProviderRepository: Repository<AuthProvider>,
+
 		private readonly jwtService: JwtService,
 
 		private readonly usersService: UsersService,
@@ -23,7 +31,7 @@ export class AuthService {
 		}
 
 		if (!existingUser.password) {
-			throw new BadRequestException(`User with email ${signInDto.email} does not have a password set`);
+			throw new BadRequestException('To sign in with email and password, password must be set.');
 		}
 
 		const isEqualPassword = await this.hashingProvider.compare(signInDto.password, existingUser.password);
@@ -32,10 +40,7 @@ export class AuthService {
 			throw new BadRequestException(`Incorrect password`);
 		}
 
-		const { accessToken, refreshToken } = await this.jwtService.generateTokens(existingUser);
-		await this.jwtService.insertRefreshToken({ userId: existingUser.id, refreshToken, agent });
-
-		return { accessToken, refreshToken };
+		return this.jwtService.generateAndStoreTokens(existingUser.id, agent);
 	}
 
 	async signUp(signUpDto: SignUpUserDto, agent: string | null) {
@@ -45,16 +50,25 @@ export class AuthService {
 			throw new BadRequestException(`User with email ${signUpDto.email} already exists`);
 		}
 
-		const user = await this.usersService.create(signUpDto);
+		const hashedPassword = await this.hashingProvider.hash(signUpDto.password);
 
-		const { accessToken, refreshToken } = await this.jwtService.generateTokens({ id: user.id });
+		const user = await this.usersService.create({ ...signUpDto, password: hashedPassword });
 
-		await this.jwtService.insertRefreshToken({ userId: user.id, refreshToken, agent });
-
-		return { accessToken, refreshToken };
+		return this.jwtService.generateAndStoreTokens(user.id, agent);
 	}
 
 	async signOut(userId: number, token: string) {
 		await this.jwtService.revokeRefreshToken(userId, token);
+	}
+
+	async findAuthByProvider(provider: AuthProviderType, providerId: string) {
+		return this.authProviderRepository.findOne({
+			where: { provider, providerId },
+			relations: ['user'],
+		});
+	}
+
+	async createAuthProviderForUser(user: User, provider: AuthProviderType, providerId: string) {
+		return this.authProviderRepository.save({ user, provider, providerId });
 	}
 }

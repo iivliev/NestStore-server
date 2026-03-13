@@ -23,5 +23,8 @@ export default registerAs('auth', () => ({
 	// Google OAuth configuration
 	googleClientId: process.env.GOOGLE_CLIENT_ID!,
 	googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-	googleRedirectUri: process.env.GOOGLE_REDIRECT_URI!,
+	googleRedirectUrl: process.env.GOOGLE_REDIRECT_URL!,
+	googleAuthUrl: process.env.GOOGLE_AUTH_URL!,
+	googleTokenUrl: process.env.GOOGLE_TOKEN_URL!,
+	googleAuthScope: process.env.GOOGLE_AUTH_SCOPE!,
 }));

@@ -6,11 +6,11 @@ import databaseConfig from './infrastructure/config/database.config';
 import validationSchema from './infrastructure/config/environment.validation';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SecurityModule } from './infrastructure/security/security.module';
-import { TypeOrmExceptionFilter } from 'src/infrastructure/database/filters/typeorm-exception.filter';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import appConfig from './infrastructure/config/app.config';
 import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
 import { ScheduleModule } from '@nestjs/schedule';
+import { GlobalExceptionFilter } from './infrastructure/exceptions/filters/global-exception.filter';
 
 const ENV = process.env.NODE_ENV;
 
@@ -45,7 +45,7 @@ const ENV = process.env.NODE_ENV;
 	providers: [
 		{
 			provide: APP_FILTER,
-			useClass: TypeOrmExceptionFilter,
+			useClass: GlobalExceptionFilter,
 		},
 		{
 			provide: APP_GUARD,

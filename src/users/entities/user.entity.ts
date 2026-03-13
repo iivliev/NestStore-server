@@ -14,9 +14,9 @@ export class User {
 	@Column()
 	name: string;
 
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	@Exclude()
-	password?: string;
+	password?: string | null;
 
 	@Column({ default: false })
 	confirmed: boolean;
