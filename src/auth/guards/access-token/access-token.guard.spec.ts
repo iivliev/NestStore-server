@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AccessTokenGuard } from './access-token.guard';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import jwtConfig from 'src/infrastructure/config/jwt.config';
+import authConfig from 'src/auth/config/auth.config';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
@@ -18,10 +18,10 @@ describe('AccessTokenGuard', () => {
 		verifyAsync: jest.fn(),
 	};
 
-	const mockJwtConfig = {
-		accessTokenSecret: 'test-access-secret',
-		audience: 'test-audience',
-		issuer: 'test-issuer',
+	const mockAuthConfig = {
+		jwtAccessTokenSecret: 'test-access-secret',
+		jwtAudience: 'test-audience',
+		jwtIssuer: 'test-issuer',
 	};
 
 	const mockRequest: { headers: { [key: string]: any }; [key: string]: any } = {
@@ -43,8 +43,8 @@ describe('AccessTokenGuard', () => {
 					useValue: mockJwtService,
 				},
 				{
-					provide: jwtConfig.KEY,
-					useValue: mockJwtConfig,
+					provide: authConfig.KEY,
+					useValue: mockAuthConfig,
 				},
 			],
 		}).compile();
@@ -65,9 +65,9 @@ describe('AccessTokenGuard', () => {
 
 			expect(result).toBe(true);
 			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(ACCESS_TOKEN, {
-				secret: mockJwtConfig.accessTokenSecret,
-				audience: mockJwtConfig.audience,
-				issuer: mockJwtConfig.issuer,
+				secret: mockAuthConfig.jwtAccessTokenSecret,
+				audience: mockAuthConfig.jwtAudience,
+				issuer: mockAuthConfig.jwtIssuer,
 			});
 		});
 
@@ -98,9 +98,9 @@ describe('AccessTokenGuard', () => {
 
 			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
 			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
-				secret: mockJwtConfig.accessTokenSecret,
-				audience: mockJwtConfig.audience,
-				issuer: mockJwtConfig.issuer,
+				secret: mockAuthConfig.jwtAccessTokenSecret,
+				audience: mockAuthConfig.jwtAudience,
+				issuer: mockAuthConfig.jwtIssuer,
 			});
 		});
 

@@ -3,7 +3,7 @@ import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { REFRESH_TOKEN_KEY, REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import jwtConfig from 'src/infrastructure/config/jwt.config';
+import authConfig from 'src/auth/config/auth.config';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
 /**
@@ -17,14 +17,14 @@ export class RefreshTokenGuard implements CanActivate {
 	constructor(
 		private readonly jwtService: NestJwtService,
 
-		@Inject(jwtConfig.KEY)
-		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+		@Inject(authConfig.KEY)
+		private readonly authConfiguration: ConfigType<typeof authConfig>,
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest<Request>();
 
-		const token = request.cookies[this.jwtConfiguration.refreshTokenCookieName] as string;
+		const token = request.cookies[this.authConfiguration.refreshTokenCookieName] as string;
 
 		if (!token) {
 			throw new UnauthorizedException();
@@ -32,9 +32,9 @@ export class RefreshTokenGuard implements CanActivate {
 
 		try {
 			const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-				secret: this.jwtConfiguration.refreshTokenSecret,
-				audience: this.jwtConfiguration.audience,
-				issuer: this.jwtConfiguration.issuer,
+				secret: this.authConfiguration.jwtRefreshTokenSecret,
+				audience: this.authConfiguration.jwtAudience,
+				issuer: this.authConfiguration.jwtIssuer,
 			});
 
 			request[REQUEST_USER_KEY] = payload;

@@ -4,7 +4,7 @@ import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { IsNull } from 'typeorm';
-import jwtConfig from 'src/infrastructure/config/jwt.config';
+import authConfig from 'src/auth/config/auth.config';
 import { UsersService } from 'src/users/users.service';
 import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/users/entities/user.entity';
@@ -24,13 +24,13 @@ describe('JwtService', () => {
 	let service: JwtService;
 
 	const mockJwtConfig = {
-		audience: 'test-audience',
-		issuer: 'test-issuer',
-		accessTokenSecret: 'access-secret',
-		refreshTokenSecret: 'refresh-secret',
-		accessTokenTtl: 3600,
-		refreshTokenTtl: 86400,
-		maxActiveTokens: 5,
+		jwtAudience: 'test-audience',
+		jwtIssuer: 'test-issuer',
+		jwtAccessTokenSecret: 'access-secret',
+		jwtRefreshTokenSecret: 'refresh-secret',
+		jwtAccessTokenTtl: 3600,
+		jwtRefreshTokenTtl: 86400,
+		jwtMaxActiveTokens: 5,
 	};
 
 	const mockUser: User = {
@@ -74,7 +74,7 @@ describe('JwtService', () => {
 					useValue: mockRefreshTokenRepository,
 				},
 				{
-					provide: jwtConfig.KEY,
+					provide: authConfig.KEY,
 					useValue: mockJwtConfig,
 				},
 				{
@@ -116,8 +116,8 @@ describe('JwtService', () => {
 					sub: 1,
 				},
 				{
-					audience: mockJwtConfig.audience,
-					issuer: mockJwtConfig.issuer,
+					audience: mockJwtConfig.jwtAudience,
+					issuer: mockJwtConfig.jwtIssuer,
 					secret: 'test-secret',
 					expiresIn: 3600,
 				},
@@ -145,10 +145,10 @@ describe('JwtService', () => {
 					sub: 1,
 				},
 				{
-					audience: mockJwtConfig.audience,
-					issuer: mockJwtConfig.issuer,
-					secret: mockJwtConfig.accessTokenSecret,
-					expiresIn: mockJwtConfig.accessTokenTtl,
+					audience: mockJwtConfig.jwtAudience,
+					issuer: mockJwtConfig.jwtIssuer,
+					secret: mockJwtConfig.jwtAccessTokenSecret,
+					expiresIn: mockJwtConfig.jwtAccessTokenTtl,
 				},
 			);
 			expect(mockNestJwtService.signAsync).toHaveBeenNthCalledWith(
@@ -157,10 +157,10 @@ describe('JwtService', () => {
 					sub: 1,
 				},
 				{
-					audience: mockJwtConfig.audience,
-					issuer: mockJwtConfig.issuer,
-					secret: mockJwtConfig.refreshTokenSecret,
-					expiresIn: mockJwtConfig.refreshTokenTtl,
+					audience: mockJwtConfig.jwtAudience,
+					issuer: mockJwtConfig.jwtIssuer,
+					secret: mockJwtConfig.jwtRefreshTokenSecret,
+					expiresIn: mockJwtConfig.jwtRefreshTokenTtl,
 				},
 			);
 		});
@@ -194,7 +194,7 @@ describe('JwtService', () => {
 		});
 
 		it('should revoke oldest token when max active tokens limit is reached', async () => {
-			const MAX_ACTIVE_TOKENS = mockJwtConfig.maxActiveTokens;
+			const MAX_ACTIVE_TOKENS = mockJwtConfig.jwtMaxActiveTokens;
 			const activeTokens = Array.from({ length: MAX_ACTIVE_TOKENS }, (_, i) => ({
 				id: i + 1,
 				hashedToken: `hashed-token-${i}`,

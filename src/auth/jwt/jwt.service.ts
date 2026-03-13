@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
-import jwtConfig from 'src/infrastructure/config/jwt.config';
+import authConfig from 'src/auth/config/auth.config';
 import { User } from 'src/users/entities/user.entity';
 import { JwtDecoded } from '../interfaces/jwt.interface';
 import { IsNull, Repository } from 'typeorm';
@@ -16,8 +16,8 @@ export class JwtService {
 		@InjectRepository(RefreshToken)
 		private readonly refreshTokenRepository: Repository<RefreshToken>,
 
-		@Inject(jwtConfig.KEY)
-		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+		@Inject(authConfig.KEY)
+		private readonly authConfiguration: ConfigType<typeof authConfig>,
 
 		private readonly jwtService: NestJwtService,
 
@@ -31,8 +31,8 @@ export class JwtService {
 				...payload,
 			},
 			{
-				audience: this.jwtConfiguration.audience,
-				issuer: this.jwtConfiguration.issuer,
+				audience: this.authConfiguration.jwtAudience,
+				issuer: this.authConfiguration.jwtIssuer,
 				secret,
 				expiresIn,
 			},
@@ -43,13 +43,13 @@ export class JwtService {
 		const [accessToken, refreshToken] = await Promise.all([
 			this.signToken({
 				sub: userId,
-				expiresIn: this.jwtConfiguration.accessTokenTtl,
-				secret: this.jwtConfiguration.accessTokenSecret,
+				expiresIn: this.authConfiguration.jwtAccessTokenTtl,
+				secret: this.authConfiguration.jwtAccessTokenSecret,
 			}),
 			this.signToken({
 				sub: userId,
-				secret: this.jwtConfiguration.refreshTokenSecret,
-				expiresIn: this.jwtConfiguration.refreshTokenTtl,
+				secret: this.authConfiguration.jwtRefreshTokenSecret,
+				expiresIn: this.authConfiguration.jwtRefreshTokenTtl,
 			}),
 		]);
 
@@ -83,7 +83,7 @@ export class JwtService {
 
 		const activeTokens = await this.findActiveRefreshTokens(userId);
 
-		if (activeTokens.length >= this.jwtConfiguration.maxActiveTokens) {
+		if (activeTokens.length >= this.authConfiguration.jwtMaxActiveTokens) {
 			activeTokens[0].revokedAt = new Date();
 			await this.refreshTokenRepository.save(activeTokens[0]);
 		}

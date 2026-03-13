@@ -22,6 +22,10 @@ export class AuthService {
 			throw new BadRequestException(`User with email ${signInDto.email} not found`);
 		}
 
+		if (!existingUser.password) {
+			throw new BadRequestException(`User with email ${signInDto.email} does not have a password set`);
+		}
+
 		const isEqualPassword = await this.hashingProvider.compare(signInDto.password, existingUser.password);
 
 		if (!isEqualPassword) {

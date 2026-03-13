@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RefreshTokenGuard } from './refresh-token.guard';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import jwtConfig from 'src/infrastructure/config/jwt.config';
+import authConfig from 'src/auth/config/auth.config';
 import { REQUEST_USER_KEY, REFRESH_TOKEN_KEY } from 'src/auth/constants/auth.constants';
 import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 
@@ -18,11 +18,11 @@ describe('RefreshTokenGuard', () => {
 		verifyAsync: jest.fn(),
 	};
 
-	const mockJwtConfig = {
+	const mockAuthConfig = {
 		refreshTokenCookieName: 'testRefreshToken',
-		refreshTokenSecret: 'test-refresh-secret',
-		audience: 'test-audience',
-		issuer: 'test-issuer',
+		jwtRefreshTokenSecret: 'test-refresh-secret',
+		jwtAudience: 'test-audience',
+		jwtIssuer: 'test-issuer',
 	};
 
 	const mockRequest = {
@@ -44,8 +44,8 @@ describe('RefreshTokenGuard', () => {
 					useValue: mockJwtService,
 				},
 				{
-					provide: jwtConfig.KEY,
-					useValue: mockJwtConfig,
+					provide: authConfig.KEY,
+					useValue: mockAuthConfig,
 				},
 			],
 		}).compile();
@@ -60,16 +60,16 @@ describe('RefreshTokenGuard', () => {
 
 	describe('canActivate', () => {
 		it('should return true when valid refresh token is present', async () => {
-			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = REFRESH_TOKEN;
+			mockRequest.cookies[mockAuthConfig.refreshTokenCookieName] = REFRESH_TOKEN;
 			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			const result = await guard.canActivate(mockExecutionContext);
 
 			expect(result).toBe(true);
 			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith(REFRESH_TOKEN, {
-				secret: mockJwtConfig.refreshTokenSecret,
-				audience: mockJwtConfig.audience,
-				issuer: mockJwtConfig.issuer,
+				secret: mockAuthConfig.jwtRefreshTokenSecret,
+				audience: mockAuthConfig.jwtAudience,
+				issuer: mockAuthConfig.jwtIssuer,
 			});
 		});
 
@@ -81,26 +81,26 @@ describe('RefreshTokenGuard', () => {
 		});
 
 		it('should throw UnauthorizedException when refresh token is undefined', async () => {
-			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = undefined;
+			mockRequest.cookies[mockAuthConfig.refreshTokenCookieName] = undefined;
 
 			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
 			expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
 		});
 
 		it('should throw UnauthorizedException when token verification fails', async () => {
-			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = 'invalid-token';
+			mockRequest.cookies[mockAuthConfig.refreshTokenCookieName] = 'invalid-token';
 			mockJwtService.verifyAsync.mockRejectedValue(new Error('Invalid token'));
 
 			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);
 			expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
-				secret: mockJwtConfig.refreshTokenSecret,
-				audience: mockJwtConfig.audience,
-				issuer: mockJwtConfig.issuer,
+				secret: mockAuthConfig.jwtRefreshTokenSecret,
+				audience: mockAuthConfig.jwtAudience,
+				issuer: mockAuthConfig.jwtIssuer,
 			});
 		});
 
 		it('should attach payload to request', async () => {
-			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = REFRESH_TOKEN;
+			mockRequest.cookies[mockAuthConfig.refreshTokenCookieName] = REFRESH_TOKEN;
 			mockJwtService.verifyAsync.mockResolvedValue(JWT_PAYLOAD);
 
 			await guard.canActivate(mockExecutionContext);
@@ -110,7 +110,7 @@ describe('RefreshTokenGuard', () => {
 		});
 
 		it('should handle token verification with expired token', async () => {
-			mockRequest.cookies[mockJwtConfig.refreshTokenCookieName] = 'expired-token';
+			mockRequest.cookies[mockAuthConfig.refreshTokenCookieName] = 'expired-token';
 			mockJwtService.verifyAsync.mockRejectedValue(new Error('Token expired'));
 
 			await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(UnauthorizedException);

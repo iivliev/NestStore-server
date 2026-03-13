@@ -106,6 +106,24 @@ describe('AuthService', () => {
 			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
 		});
 
+		it('should throw BadRequestException when user does not have a password set', async () => {
+			const userWithoutPassword: User = {
+				...user,
+				//@ts-expect-error - intentionally setting password to null to test this case
+				password: null,
+			};
+
+			mockUsersService.findOneByEmail.mockResolvedValue(userWithoutPassword);
+
+			await expect(service.signIn(signInDto, null)).rejects.toThrow(
+				new BadRequestException(`User with email ${signInDto.email} does not have a password set`),
+			);
+
+			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
+			expect(mockHashingProvider.compare).not.toHaveBeenCalled();
+			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
+		});
+
 		it('should throw BadRequestException when password is incorrect', async () => {
 			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(false);

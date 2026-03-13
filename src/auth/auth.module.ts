@@ -11,9 +11,17 @@ import { RefreshToken } from './entities/refresh-token.entity';
 import { RefreshTokenCleanupService } from './jwt/refresh-token-cleanup-schedule.service';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
 import { AuthProvider } from './entities/auth-providers.entity';
+import { ConfigModule } from '@nestjs/config';
+import authConfig from './config/auth.config';
 
 @Module({
-	imports: [JwtModule.register({}), TypeOrmModule.forFeature([AuthProvider, RefreshToken]), UsersModule, HashingModule],
+	imports: [
+		ConfigModule.forFeature(authConfig),
+		JwtModule.register({}),
+		TypeOrmModule.forFeature([AuthProvider, RefreshToken]),
+		UsersModule,
+		HashingModule,
+	],
 	controllers: [AuthController],
 	providers: [AuthService, JwtService, AccessTokenGuard, RefreshTokenGuard, RefreshTokenCleanupService],
 	exports: [AuthService, AccessTokenGuard],
