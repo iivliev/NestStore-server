@@ -40,6 +40,7 @@ describe('JwtService', () => {
 		refreshTokens: [],
 		name: 'Test User',
 		confirmed: false,
+		authProviders: [],
 	};
 
 	const mockRefreshTokenRepository = {

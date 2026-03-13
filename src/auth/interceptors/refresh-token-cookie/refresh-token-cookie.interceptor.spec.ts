@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RefreshTokenCookieInterceptor } from './refresh-token-cookie.interceptor';
-import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { of } from 'rxjs';
+import authConfig from 'src/auth/config/auth.config';
 
 interface TokenResponse {
 	refreshToken?: string;
@@ -18,9 +18,9 @@ const REFRESH_TOKEN_COOKIE_PATH = '/auth';
 const REFRESH_TOKEN_COOKIE_AGE = 604800000;
 
 const CONFIG = {
-	'jwt.refreshTokenCookieName': REFRESH_TOKEN_COOKIE_NAME,
-	'jwt.refreshTokenCookiePath': REFRESH_TOKEN_COOKIE_PATH,
-	'jwt.refreshTokenCookieAge': REFRESH_TOKEN_COOKIE_AGE,
+	refreshTokenCookieName: REFRESH_TOKEN_COOKIE_NAME,
+	refreshTokenCookiePath: REFRESH_TOKEN_COOKIE_PATH,
+	refreshTokenCookieAge: REFRESH_TOKEN_COOKIE_AGE,
 	NODE_ENV: 'test',
 };
 
@@ -32,10 +32,6 @@ const TOKEN_RESPONSE: TokenResponse = {
 
 describe('RefreshTokenCookieInterceptor', () => {
 	let interceptor: RefreshTokenCookieInterceptor;
-
-	const mockConfigService = {
-		get: jest.fn(),
-	};
 
 	const mockResponse = {
 		cookie: jest.fn(),
@@ -53,19 +49,13 @@ describe('RefreshTokenCookieInterceptor', () => {
 			providers: [
 				RefreshTokenCookieInterceptor,
 				{
-					provide: ConfigService,
-					useValue: mockConfigService,
+					provide: authConfig.KEY,
+					useValue: CONFIG,
 				},
 			],
 		}).compile();
 
 		interceptor = module.get<RefreshTokenCookieInterceptor>(RefreshTokenCookieInterceptor);
-
-		mockConfigService.get.mockImplementation((key: string) => {
-			const config: Record<string, string | number> = { ...CONFIG };
-
-			return config[key];
-		});
 	});
 
 	afterEach(() => {
@@ -95,13 +85,8 @@ describe('RefreshTokenCookieInterceptor', () => {
 		});
 
 		it('should set secure cookie in production environment', (done) => {
-			mockConfigService.get.mockImplementation((key: string) => {
-				const config: Record<string, string | number> = {
-					...CONFIG,
-					NODE_ENV: 'production',
-				};
-				return config[key];
-			});
+			const originalNodeEnv = process.env.NODE_ENV;
+			process.env.NODE_ENV = 'production';
 
 			const mockCallHandler: CallHandler<TokenResponse> = {
 				handle: jest.fn().mockReturnValue(of(TOKEN_RESPONSE)),
@@ -117,6 +102,7 @@ describe('RefreshTokenCookieInterceptor', () => {
 						maxAge: REFRESH_TOKEN_COOKIE_AGE,
 					});
 					expect(result).toEqual({ accessToken: ACCESS_TOKEN });
+					process.env.NODE_ENV = originalNodeEnv;
 					done();
 				},
 			});

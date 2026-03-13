@@ -7,6 +7,9 @@ import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.pro
 import { SignInUserDto } from './dto/sign-in-user.dto';
 import { SignUpUserDto } from './dto/sign-up-user.dto';
 import { User } from 'src/users/entities/user.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { AuthProvider } from './entities/auth-providers.entity';
+import { AuthProviderType } from './enums/auth-type.enum';
 
 const mockTokens = {
 	accessToken: 'access-token',
@@ -20,14 +23,19 @@ const user: User = {
 	password: 'hashedPassword',
 	confirmed: false,
 	refreshTokens: [],
+	authProviders: [],
 };
 
 describe('AuthService', () => {
 	let service: AuthService;
 
+	const mockAuthProviderRepository = {
+		save: jest.fn(),
+		findOne: jest.fn(),
+	};
+
 	const mockJwtService = {
-		generateTokens: jest.fn(),
-		insertRefreshToken: jest.fn(),
+		generateAndStoreTokens: jest.fn(),
 		revokeRefreshToken: jest.fn(),
 	};
 
@@ -57,6 +65,10 @@ describe('AuthService', () => {
 					provide: HashingProvider,
 					useValue: mockHashingProvider,
 				},
+				{
+					provide: getRepositoryToken(AuthProvider),
+					useValue: mockAuthProviderRepository,
+				},
 			],
 		}).compile();
 
@@ -78,19 +90,13 @@ describe('AuthService', () => {
 
 			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(true);
-			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
-			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
+			mockJwtService.generateAndStoreTokens.mockResolvedValue(mockTokens);
 
 			const result = await service.signIn(signInDto, agent);
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
 			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, user.password);
-			expect(mockJwtService.generateTokens).toHaveBeenCalledWith(user);
-			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: user.id,
-				refreshToken: mockTokens.refreshToken,
-				agent,
-			});
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, agent);
 			expect(result).toEqual(mockTokens);
 		});
 
@@ -103,25 +109,24 @@ describe('AuthService', () => {
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
 			expect(mockHashingProvider.compare).not.toHaveBeenCalled();
-			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
+			expect(mockJwtService.generateAndStoreTokens).not.toHaveBeenCalled();
 		});
 
 		it('should throw BadRequestException when user does not have a password set', async () => {
 			const userWithoutPassword: User = {
 				...user,
-				//@ts-expect-error - intentionally setting password to null to test this case
 				password: null,
 			};
 
 			mockUsersService.findOneByEmail.mockResolvedValue(userWithoutPassword);
 
 			await expect(service.signIn(signInDto, null)).rejects.toThrow(
-				new BadRequestException(`User with email ${signInDto.email} does not have a password set`),
+				new BadRequestException('To sign in with email and password, password must be set.'),
 			);
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
 			expect(mockHashingProvider.compare).not.toHaveBeenCalled();
-			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
+			expect(mockJwtService.generateAndStoreTokens).not.toHaveBeenCalled();
 		});
 
 		it('should throw BadRequestException when password is incorrect', async () => {
@@ -132,22 +137,17 @@ describe('AuthService', () => {
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
 			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, user.password);
-			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
+			expect(mockJwtService.generateAndStoreTokens).not.toHaveBeenCalled();
 		});
 
 		it('should handle null agent parameter', async () => {
 			mockUsersService.findOneByEmail.mockResolvedValue(user);
 			mockHashingProvider.compare.mockResolvedValue(true);
-			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
-			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
+			mockJwtService.generateAndStoreTokens.mockResolvedValue(mockTokens);
 
 			const result = await service.signIn(signInDto, null);
 
-			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: user.id,
-				refreshToken: mockTokens.refreshToken,
-				agent: null,
-			});
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
 			expect(result).toEqual(mockTokens);
 		});
 	});
@@ -161,24 +161,19 @@ describe('AuthService', () => {
 
 		it('should sign up successfully with new user', async () => {
 			const agent = 'Chrome';
+			const hashedPassword = 'hashed-password';
 
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
+			mockHashingProvider.hash.mockResolvedValue(hashedPassword);
 			mockUsersService.create.mockResolvedValue(user);
-			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
-			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
+			mockJwtService.generateAndStoreTokens.mockResolvedValue(mockTokens);
 
 			const result = await service.signUp(signUpDto, agent);
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signUpDto.email);
-			expect(mockUsersService.create).toHaveBeenCalledWith(signUpDto);
-			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
-				id: user.id,
-			});
-			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: user.id,
-				refreshToken: mockTokens.refreshToken,
-				agent,
-			});
+			expect(mockHashingProvider.hash).toHaveBeenCalledWith(signUpDto.password);
+			expect(mockUsersService.create).toHaveBeenCalledWith({ ...signUpDto, password: hashedPassword });
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, agent);
 			expect(result).toEqual(mockTokens);
 		});
 
@@ -190,6 +185,7 @@ describe('AuthService', () => {
 				password: 'hashedPassword',
 				confirmed: false,
 				refreshTokens: [],
+				authProviders: [],
 			};
 
 			mockUsersService.findOneByEmail.mockResolvedValue(existingUser);
@@ -200,38 +196,34 @@ describe('AuthService', () => {
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signUpDto.email);
 			expect(mockUsersService.create).not.toHaveBeenCalled();
-			expect(mockJwtService.generateTokens).not.toHaveBeenCalled();
+			expect(mockJwtService.generateAndStoreTokens).not.toHaveBeenCalled();
 		});
 
 		it('should handle null agent parameter', async () => {
+			const hashedPassword = 'hashed-password';
+
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
+			mockHashingProvider.hash.mockResolvedValue(hashedPassword);
 			mockUsersService.create.mockResolvedValue(user);
-			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
-			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
+			mockJwtService.generateAndStoreTokens.mockResolvedValue(mockTokens);
 
 			const result = await service.signUp(signUpDto, null);
 
-			expect(mockJwtService.insertRefreshToken).toHaveBeenCalledWith({
-				userId: user.id,
-				refreshToken: mockTokens.refreshToken,
-				agent: null,
-			});
-
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
 			expect(result).toEqual(mockTokens);
 		});
 
 		it('should generate tokens', async () => {
+			const hashedPassword = 'hashed-password';
+
 			mockUsersService.findOneByEmail.mockResolvedValue(null);
+			mockHashingProvider.hash.mockResolvedValue(hashedPassword);
 			mockUsersService.create.mockResolvedValue(user);
-			mockJwtService.generateTokens.mockResolvedValue(mockTokens);
-			mockJwtService.insertRefreshToken.mockResolvedValue(undefined);
+			mockJwtService.generateAndStoreTokens.mockResolvedValue(mockTokens);
 
 			const result = await service.signUp(signUpDto, null);
 
-			expect(mockJwtService.generateTokens).toHaveBeenCalledWith({
-				id: user.id,
-			});
-
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
 			expect(result).toEqual(mockTokens);
 		});
 	});
@@ -247,6 +239,54 @@ describe('AuthService', () => {
 
 			expect(mockJwtService.revokeRefreshToken).toHaveBeenCalledWith(userId, token);
 			expect(mockJwtService.revokeRefreshToken).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe('findAuthByProvider', () => {
+		it('should find auth provider by provider and providerId', async () => {
+			const provider = AuthProviderType.GOOGLE;
+			const providerId = '123456';
+			const authProvider = { id: 1, provider, providerId, user };
+
+			mockAuthProviderRepository.findOne.mockResolvedValue(authProvider);
+
+			const result = await service.findAuthByProvider(provider, providerId);
+
+			expect(mockAuthProviderRepository.findOne).toHaveBeenCalledWith({
+				where: { provider, providerId },
+				relations: ['user'],
+			});
+			expect(result).toEqual(authProvider);
+		});
+
+		it('should return null when auth provider not found', async () => {
+			const provider = AuthProviderType.GOOGLE;
+			const providerId = '123456';
+
+			mockAuthProviderRepository.findOne.mockResolvedValue(null);
+
+			const result = await service.findAuthByProvider(provider, providerId);
+
+			expect(mockAuthProviderRepository.findOne).toHaveBeenCalledWith({
+				where: { provider, providerId },
+				relations: ['user'],
+			});
+			expect(result).toBeNull();
+		});
+	});
+
+	describe('createAuthProviderForUser', () => {
+		it('should create auth provider for user', async () => {
+			const provider = AuthProviderType.GOOGLE;
+			const providerId = '123456';
+			const authProvider = { id: 1, provider, providerId, user };
+
+			mockAuthProviderRepository.save.mockResolvedValue(authProvider);
+
+			const result = await service.createAuthProviderForUser(user, provider, providerId);
+
+			expect(mockAuthProviderRepository.save).toHaveBeenCalledWith({ user, provider, providerId });
+			expect(result).toEqual(authProvider);
 		});
 	});
 });

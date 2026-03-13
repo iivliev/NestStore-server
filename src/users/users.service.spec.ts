@@ -50,28 +50,19 @@ describe('UsersService', () => {
 				password: 'password123',
 			};
 
-			const hashedPassword = 'hashed_password_123';
 			const createdUser = {
 				id: 1,
 				...createUserDto,
-				password: hashedPassword,
 				confirmed: false,
 			};
 
 			mockUsersRepository.findOneBy.mockResolvedValue(null);
-			mockHashingProvider.hash.mockResolvedValue(hashedPassword);
-			mockUsersRepository.create.mockReturnValue(createdUser);
 			mockUsersRepository.save.mockResolvedValue(createdUser);
 
 			const result = await service.create(createUserDto);
 
 			expect(mockUsersRepository.findOneBy).toHaveBeenCalledWith({ email: createUserDto.email });
-			expect(mockHashingProvider.hash).toHaveBeenCalledWith(createUserDto.password);
-			expect(mockUsersRepository.create).toHaveBeenCalledWith({
-				...createUserDto,
-				password: hashedPassword,
-			});
-			expect(mockUsersRepository.save).toHaveBeenCalledWith(createdUser);
+			expect(mockUsersRepository.save).toHaveBeenCalledWith(createUserDto);
 			expect(result).toEqual(createdUser);
 		});
 
@@ -96,7 +87,7 @@ describe('UsersService', () => {
 				`User with email ${createUserDto.email} already exists`,
 			);
 			expect(mockHashingProvider.hash).not.toHaveBeenCalled();
-			expect(mockUsersRepository.create).not.toHaveBeenCalled();
+
 			expect(mockUsersRepository.save).not.toHaveBeenCalled();
 		});
 	});
