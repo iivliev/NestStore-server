@@ -15,10 +15,10 @@ import { JwtPayload } from 'src/auth/interfaces/jwt.interface';
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
 	constructor(
-		private readonly jwtService: NestJwtService,
-
 		@Inject(authConfig.KEY)
 		private readonly authConfiguration: ConfigType<typeof authConfig>,
+
+		private readonly jwtService: NestJwtService,
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {

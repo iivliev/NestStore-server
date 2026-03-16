@@ -44,7 +44,7 @@ export class RefreshTokenCookieInterceptor implements NestInterceptor<
 				if (refreshToken) {
 					response.cookie(this.authConfiguration.refreshTokenCookieName, refreshToken, {
 						httpOnly: true,
-						secure: process.env.NODE_ENV === 'production' ? true : false,
+						secure: process.env.NODE_ENV === 'production',
 						sameSite: 'strict',
 						path: this.authConfiguration.refreshTokenCookiePath,
 						maxAge: this.authConfiguration.refreshTokenCookieAge,
