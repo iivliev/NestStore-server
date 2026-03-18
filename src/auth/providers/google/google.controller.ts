@@ -1,5 +1,5 @@
 import { Get, Controller, Res, Query, Session, BadRequestException, Inject } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Auth } from 'src/auth/decorators/auth/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth-type.enum';
 import { GoogleAuthService } from './google.service';
@@ -24,6 +24,9 @@ export class GoogleController {
 	) {}
 
 	@Get()
+	@ApiOperation({ summary: 'Initiate Google OAuth flow' })
+	@ApiResponse({ status: 302, description: 'Redirects to Google OAuth URL' })
+	@ApiResponse({ status: 500, description: 'Internal server error' })
 	googleAuth(@Res() res: Response, @Session() session: Record<string, any>) {
 		const { url, state } = this.googleAuthService.generateGoogleAuthUrl();
 		session.state = state;
@@ -31,6 +34,10 @@ export class GoogleController {
 	}
 
 	@Get('callback')
+	@ApiOperation({ summary: 'Handle Google OAuth callback' })
+	@ApiResponse({ status: 302, description: 'Redirects to client on success' })
+	@ApiResponse({ status: 400, description: 'Bad request (e.g. missing code, state mismatch)' })
+	@ApiResponse({ status: 500, description: 'Internal server error' })
 	async googleCallback(
 		@Res() res: Response,
 		@Query() query: Record<string, any>,
