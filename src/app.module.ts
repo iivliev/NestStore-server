@@ -11,6 +11,8 @@ import appConfig from './infrastructure/config/app.config';
 import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GlobalExceptionFilter } from './infrastructure/exceptions/filters/global-exception.filter';
+import { ProductModule } from './product/product.module';
+import { CategoryModule } from './category/category.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -40,6 +42,8 @@ const ENV = process.env.NODE_ENV;
 		AuthModule,
 		UsersModule,
 		SecurityModule,
+		ProductModule,
+		CategoryModule,
 	],
 	controllers: [],
 	providers: [
