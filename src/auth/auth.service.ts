@@ -40,7 +40,11 @@ export class AuthService {
 			throw new BadRequestException(`Incorrect password`);
 		}
 
-		return this.jwtService.generateAndStoreTokens(existingUser.id, agent);
+		return this.jwtService.generateAndStoreTokens({
+			userId: existingUser.id,
+			agent,
+			role: existingUser.role,
+		});
 	}
 
 	async signUp(signUpDto: SignUpUserDto, agent: string | null) {
@@ -54,7 +58,11 @@ export class AuthService {
 
 		const user = await this.usersService.create({ ...signUpDto, password: hashedPassword });
 
-		return this.jwtService.generateAndStoreTokens(user.id, agent);
+		return this.jwtService.generateAndStoreTokens({
+			userId: user.id,
+			agent,
+			role: user.role,
+		});
 	}
 
 	async signOut(userId: number, token: string) {

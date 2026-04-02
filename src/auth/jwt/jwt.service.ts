@@ -2,13 +2,18 @@ import { BadRequestException, Inject, Injectable, UnauthorizedException } from '
 import { type ConfigType } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import authConfig from 'src/auth/config/auth.config';
-import { User } from 'src/users/entities/user.entity';
-import { JwtDecoded } from '../interfaces/jwt.interface';
+import { JwtDecoded, JwtPayload } from '../interfaces/jwt.interface';
 import { IsNull, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { InsertRefreshTokenParams, SignTokenPayload } from '../types/jwt.type';
+import {
+	GenerateAndStoreTokensParams,
+	InsertRefreshTokenParams,
+	RefreshTokensParams,
+	SignTokenPayload,
+} from '../types/jwt.type';
 import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class JwtService {
@@ -22,12 +27,15 @@ export class JwtService {
 		private readonly jwtService: NestJwtService,
 
 		private readonly hashingProvider: HashingProvider,
+
+		private readonly usersService: UsersService,
 	) {}
 
-	async signToken<T>({ sub, expiresIn, secret, payload }: SignTokenPayload<T>) {
+	async signToken<T>({ sub, role, expiresIn, secret, payload }: SignTokenPayload<T>) {
 		return await this.jwtService.signAsync(
 			{
 				sub,
+				role,
 				...payload,
 			},
 			{
@@ -39,15 +47,16 @@ export class JwtService {
 		);
 	}
 
-	async generateTokens({ id: userId }: Pick<User, 'id'>) {
+	async generateTokens({ sub, role }: JwtPayload) {
 		const [accessToken, refreshToken] = await Promise.all([
 			this.signToken({
-				sub: userId,
+				sub,
+				role,
 				expiresIn: this.authConfiguration.jwtAccessTokenTtl,
 				secret: this.authConfiguration.jwtAccessTokenSecret,
 			}),
 			this.signToken({
-				sub: userId,
+				sub,
 				secret: this.authConfiguration.jwtRefreshTokenSecret,
 				expiresIn: this.authConfiguration.jwtRefreshTokenTtl,
 			}),
@@ -124,11 +133,18 @@ export class JwtService {
 		return matchingToken;
 	}
 
-	async refreshTokens(userId: number, refreshToken: string, agent: string) {
+	async refreshTokens({ userId, refreshToken, agent }: RefreshTokensParams) {
 		await this.revokeRefreshToken(userId, refreshToken);
 
+		const user = await this.usersService.findOneById(userId);
+
+		if (!user) {
+			throw new BadRequestException(`User with ID ${userId} not found`);
+		}
+
 		const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
-			id: userId,
+			sub: userId,
+			role: user.role,
 		});
 
 		await this.insertRefreshToken({
@@ -160,8 +176,8 @@ export class JwtService {
 		}
 	}
 
-	async generateAndStoreTokens(userId: number, agent: string | null) {
-		const { accessToken, refreshToken } = await this.generateTokens({ id: userId });
+	async generateAndStoreTokens({ userId, agent, role }: GenerateAndStoreTokensParams) {
+		const { accessToken, refreshToken } = await this.generateTokens({ sub: userId, role });
 		await this.insertRefreshToken({ userId, refreshToken, agent });
 		return { accessToken, refreshToken };
 	}

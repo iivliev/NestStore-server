@@ -61,6 +61,6 @@ export class AuthController {
 		@RefreshToken() refreshToken: string,
 		@UserAgent() agent: string,
 	) {
-		return await this.jwtService.refreshTokens(userId, refreshToken, agent);
+		return await this.jwtService.refreshTokens({ userId, refreshToken, agent });
 	}
 }

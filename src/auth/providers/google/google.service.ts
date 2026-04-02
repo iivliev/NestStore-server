@@ -66,7 +66,11 @@ export class GoogleAuthService implements OnModuleInit {
 		const existingAuth = await this.authService.findAuthByProvider(AuthProviderType.GOOGLE, providerId);
 
 		if (existingAuth) {
-			return this.jwtService.generateAndStoreTokens(existingAuth.user.id, agent);
+			return this.jwtService.generateAndStoreTokens({
+				userId: existingAuth.user.id,
+				agent,
+				role: existingAuth.user.role,
+			});
 		}
 
 		const newUser = await this.usersService.create({
@@ -77,7 +81,11 @@ export class GoogleAuthService implements OnModuleInit {
 
 		await this.authService.createAuthProviderForUser(newUser, AuthProviderType.GOOGLE, providerId);
 
-		return this.jwtService.generateAndStoreTokens(newUser.id, agent);
+		return this.jwtService.generateAndStoreTokens({
+			userId: newUser.id,
+			agent,
+			role: newUser.role,
+		});
 	}
 
 	private async exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
