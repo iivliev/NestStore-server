@@ -31,7 +31,7 @@ export class Category {
 		onDelete: 'SET NULL',
 	})
 	@JoinColumn({ name: 'parent_id' })
-	parent?: Category;
+	parent?: Category | null;
 
 	@OneToMany(() => Category, (category) => category.parent)
 	children: Category[];
