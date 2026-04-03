@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import authConfig from './config/auth.config';
 import { GoogleAuthService } from './providers/google/google.service';
 import { GoogleController } from './providers/google/google.controller';
+import { RolesGuard } from './guards/user-role/role.guard';
 
 @Module({
 	imports: [
@@ -32,7 +33,8 @@ import { GoogleController } from './providers/google/google.controller';
 		RefreshTokenGuard,
 		RefreshTokenCleanupService,
 		GoogleAuthService,
+		RolesGuard,
 	],
-	exports: [AuthService, AccessTokenGuard],
+	exports: [AuthService, AccessTokenGuard, RolesGuard],
 })
 export class AuthModule {}

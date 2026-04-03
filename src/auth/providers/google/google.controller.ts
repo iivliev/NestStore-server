@@ -1,10 +1,10 @@
 import { Get, Controller, Res, Query, Session, BadRequestException, Inject } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Auth } from 'src/auth/decorators/auth/auth.decorator';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth-type.enum';
 import { GoogleAuthService } from './google.service';
 import { type Response } from 'express';
-import { UserAgent } from 'src/auth/decorators/user/user-agent.decorator';
+import { UserAgent } from 'src/auth/decorators/user-agent.decorator';
 import authConfig from 'src/auth/config/auth.config';
 import { type ConfigType } from '@nestjs/config';
 import appConfig from 'src/infrastructure/config/app.config';

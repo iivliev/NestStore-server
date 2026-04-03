@@ -1,14 +1,14 @@
 import { Body, Controller, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthType } from './enums/auth-type.enum';
-import { Auth } from './decorators/auth/auth.decorator';
+import { Auth } from './decorators/auth.decorator';
 import { SignInUserDto } from './dto/sign-in-user.dto';
 import { SignUpUserDto } from './dto/sign-up-user.dto';
-import { UserAgent } from './decorators/user/user-agent.decorator';
+import { UserAgent } from './decorators/user-agent.decorator';
 import { RefreshTokenGuard } from './guards/refresh-token/refresh-token.guard';
-import { RefreshToken } from './decorators/auth/refresh-token.decorator';
+import { RefreshToken } from './decorators/refresh-token.decorator';
 import { RefreshTokenCookieInterceptor } from './interceptors/refresh-token-cookie/refresh-token-cookie.interceptor';
-import { ActiveUser } from './decorators/user/active-user.decorator';
+import { ActiveUser } from './decorators/active-user.decorator';
 import { JwtService } from './jwt/jwt.service';
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
