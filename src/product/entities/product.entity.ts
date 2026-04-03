@@ -42,7 +42,7 @@ export class Product {
 		onDelete: 'SET NULL',
 	})
 	@JoinColumn({ name: 'category_id' })
-	category?: Category;
+	category?: Category | null;
 
 	@Column({ type: 'text', array: true, default: [] })
 	images: string[];
