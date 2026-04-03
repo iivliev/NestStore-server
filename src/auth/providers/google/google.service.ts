@@ -69,7 +69,6 @@ export class GoogleAuthService implements OnModuleInit {
 			return this.jwtService.generateAndStoreTokens({
 				userId: existingAuth.user.id,
 				agent,
-				role: existingAuth.user.role,
 			});
 		}
 
@@ -84,7 +83,6 @@ export class GoogleAuthService implements OnModuleInit {
 		return this.jwtService.generateAndStoreTokens({
 			userId: newUser.id,
 			agent,
-			role: newUser.role,
 		});
 	}
 

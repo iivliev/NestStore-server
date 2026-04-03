@@ -43,7 +43,6 @@ export class AuthService {
 		return this.jwtService.generateAndStoreTokens({
 			userId: existingUser.id,
 			agent,
-			role: existingUser.role,
 		});
 	}
 
@@ -61,7 +60,6 @@ export class AuthService {
 		return this.jwtService.generateAndStoreTokens({
 			userId: user.id,
 			agent,
-			role: user.role,
 		});
 	}
 

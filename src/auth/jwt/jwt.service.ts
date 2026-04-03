@@ -31,11 +31,10 @@ export class JwtService {
 		private readonly usersService: UsersService,
 	) {}
 
-	async signToken<T>({ sub, role, expiresIn, secret, payload }: SignTokenPayload<T>) {
+	async signToken<T>({ sub, expiresIn, secret, payload }: SignTokenPayload<T>) {
 		return await this.jwtService.signAsync(
 			{
 				sub,
-				role,
 				...payload,
 			},
 			{
@@ -47,11 +46,10 @@ export class JwtService {
 		);
 	}
 
-	async generateTokens({ sub, role }: JwtPayload) {
+	async generateTokens({ sub }: JwtPayload) {
 		const [accessToken, refreshToken] = await Promise.all([
 			this.signToken({
 				sub,
-				role,
 				expiresIn: this.authConfiguration.jwtAccessTokenTtl,
 				secret: this.authConfiguration.jwtAccessTokenSecret,
 			}),
@@ -144,7 +142,6 @@ export class JwtService {
 
 		const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
 			sub: userId,
-			role: user.role,
 		});
 
 		await this.insertRefreshToken({
@@ -176,8 +173,8 @@ export class JwtService {
 		}
 	}
 
-	async generateAndStoreTokens({ userId, agent, role }: GenerateAndStoreTokensParams) {
-		const { accessToken, refreshToken } = await this.generateTokens({ sub: userId, role });
+	async generateAndStoreTokens({ userId, agent }: GenerateAndStoreTokensParams) {
+		const { accessToken, refreshToken } = await this.generateTokens({ sub: userId });
 		await this.insertRefreshToken({ userId, refreshToken, agent });
 		return { accessToken, refreshToken };
 	}
