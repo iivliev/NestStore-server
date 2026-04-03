@@ -175,7 +175,10 @@ describe('GoogleAuthService', () => {
 
 			await service.handleGoogleCallback('agent', 'code');
 
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith('existing-user-id', 'agent');
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({
+				userId: 'existing-user-id',
+				agent: 'agent',
+			});
 			expect(mockUsersService.create).not.toHaveBeenCalled();
 			expect(mockAuthService.createAuthProviderForUser).not.toHaveBeenCalled();
 		});
@@ -196,7 +199,10 @@ describe('GoogleAuthService', () => {
 				AuthProviderType.GOOGLE,
 				payload.sub,
 			);
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith('new-user-id', 'agent');
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({
+				userId: 'new-user-id',
+				agent: 'agent',
+			});
 		});
 
 		it('throws when google payload is invalid', async () => {

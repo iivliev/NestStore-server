@@ -10,6 +10,7 @@ import { User } from 'src/users/entities/user.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthProvider } from './entities/auth-providers.entity';
 import { AuthProviderType } from './enums/auth-type.enum';
+import { UserRole } from 'src/users/enums/user-role.enum';
 
 const mockTokens = {
 	accessToken: 'access-token',
@@ -24,6 +25,7 @@ const user: User = {
 	confirmed: false,
 	refreshTokens: [],
 	authProviders: [],
+	role: UserRole.USER,
 };
 
 describe('AuthService', () => {
@@ -96,7 +98,7 @@ describe('AuthService', () => {
 
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signInDto.email);
 			expect(mockHashingProvider.compare).toHaveBeenCalledWith(signInDto.password, user.password);
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, agent);
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({ userId: user.id, agent });
 			expect(result).toEqual(mockTokens);
 		});
 
@@ -147,7 +149,7 @@ describe('AuthService', () => {
 
 			const result = await service.signIn(signInDto, null);
 
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({ userId: user.id, agent: null });
 			expect(result).toEqual(mockTokens);
 		});
 	});
@@ -173,7 +175,7 @@ describe('AuthService', () => {
 			expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith(signUpDto.email);
 			expect(mockHashingProvider.hash).toHaveBeenCalledWith(signUpDto.password);
 			expect(mockUsersService.create).toHaveBeenCalledWith({ ...signUpDto, password: hashedPassword });
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, agent);
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({ userId: user.id, agent });
 			expect(result).toEqual(mockTokens);
 		});
 
@@ -186,6 +188,7 @@ describe('AuthService', () => {
 				confirmed: false,
 				refreshTokens: [],
 				authProviders: [],
+				role: UserRole.USER,
 			};
 
 			mockUsersService.findOneByEmail.mockResolvedValue(existingUser);
@@ -209,7 +212,7 @@ describe('AuthService', () => {
 
 			const result = await service.signUp(signUpDto, null);
 
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({ userId: user.id, agent: null });
 			expect(result).toEqual(mockTokens);
 		});
 
@@ -223,7 +226,7 @@ describe('AuthService', () => {
 
 			const result = await service.signUp(signUpDto, null);
 
-			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith(user.id, null);
+			expect(mockJwtService.generateAndStoreTokens).toHaveBeenCalledWith({ userId: user.id, agent: null });
 			expect(result).toEqual(mockTokens);
 		});
 	});

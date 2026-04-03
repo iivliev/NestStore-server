@@ -9,6 +9,7 @@ import { UsersService } from 'src/users/users.service';
 import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/users/entities/user.entity';
 import { HashingProvider } from 'src/infrastructure/security/hashing/hashing.provider';
+import { UserRole } from 'src/users/enums/user-role.enum';
 
 const ACCESS_TOKEN = 'test-access-token';
 const REFRESH_TOKEN = 'test-refresh-token';
@@ -41,6 +42,7 @@ describe('JwtService', () => {
 		name: 'Test User',
 		confirmed: false,
 		authProviders: [],
+		role: UserRole.USER,
 	};
 
 	const mockRefreshTokenRepository = {
@@ -131,7 +133,7 @@ describe('JwtService', () => {
 			mockNestJwtService.signAsync.mockResolvedValueOnce(ACCESS_TOKEN).mockResolvedValueOnce(REFRESH_TOKEN);
 
 			const result = await service.generateTokens({
-				id: 1,
+				sub: 1,
 			});
 
 			expect(result).toEqual({
@@ -266,7 +268,7 @@ describe('JwtService', () => {
 			mockNestJwtService.decode.mockReturnValue(DECODED_TOKEN);
 			mockHashingProvider.hash.mockResolvedValue(HASHED_TOKEN);
 
-			const result = await service.refreshTokens(1, mockOldRefreshToken, AGENT);
+			const result = await service.refreshTokens({ userId: 1, refreshToken: mockOldRefreshToken, agent: AGENT });
 
 			expect(mockHashingProvider.compare).toHaveBeenCalledWith(mockOldRefreshToken, mockHashedOldToken);
 			expect(mockRefreshTokenRepository.update).toHaveBeenCalledWith(
@@ -298,9 +300,9 @@ describe('JwtService', () => {
 
 			mockRefreshTokenRepository.find.mockResolvedValue([]);
 
-			await expect(service.refreshTokens(1, mockOldRefreshToken, AGENT)).rejects.toThrow(
-				'Refresh token not found or already revoked',
-			);
+			await expect(
+				service.refreshTokens({ userId: 1, refreshToken: mockOldRefreshToken, agent: AGENT }),
+			).rejects.toThrow('Refresh token not found or already revoked');
 
 			expect(mockRefreshTokenRepository.find).toHaveBeenCalledWith({
 				where: { user: { id: 1 }, revokedAt: IsNull() },
@@ -329,9 +331,9 @@ describe('JwtService', () => {
 			mockHashingProvider.compare.mockResolvedValue(true);
 			mockRefreshTokenRepository.update.mockResolvedValue({ affected: 0 });
 
-			await expect(service.refreshTokens(999, mockOldRefreshToken, AGENT)).rejects.toThrow(
-				'Refresh token not found or already revoked',
-			);
+			await expect(
+				service.refreshTokens({ userId: 999, refreshToken: mockOldRefreshToken, agent: AGENT }),
+			).rejects.toThrow('Refresh token not found or already revoked');
 		});
 	});
 

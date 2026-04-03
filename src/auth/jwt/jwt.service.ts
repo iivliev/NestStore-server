@@ -134,12 +134,6 @@ export class JwtService {
 	async refreshTokens({ userId, refreshToken, agent }: RefreshTokensParams) {
 		await this.revokeRefreshToken(userId, refreshToken);
 
-		const user = await this.usersService.findOneById(userId);
-
-		if (!user) {
-			throw new BadRequestException(`User with ID ${userId} not found`);
-		}
-
 		const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens({
 			sub: userId,
 		});

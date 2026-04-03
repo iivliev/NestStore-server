@@ -114,7 +114,7 @@ describe('AuthController', () => {
 		const refreshToken = 'valid-refresh-token';
 		const result = await controller.refreshTokens(userId, refreshToken, AGENT);
 
-		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith(userId, refreshToken, AGENT);
+		expect(mockJwtService.refreshTokens).toHaveBeenCalledWith({ userId, refreshToken, agent: AGENT });
 		expect(mockJwtService.refreshTokens).toHaveBeenCalledTimes(1);
 		expect(result).toEqual(ENDPOINT_RESPONSE);
 	});
