@@ -5,6 +5,9 @@ import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CategoryService } from 'src/category/category.service';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { GetProductsDto } from './dto/get-products.dto';
+import { ProductSortField } from './enums/product.enum';
+import { ALLOWED_SORT_FIELDS } from './constants/product.constant';
 
 @Injectable()
 export class ProductService {
@@ -72,5 +75,48 @@ export class ProductService {
 		}
 
 		return { message: `Product with id ${id} deleted successfully` };
+	}
+
+	async findAll(filters: GetProductsDto) {
+		const {
+			categoryId,
+			search,
+			minPrice,
+			maxPrice,
+			page = 1,
+			limit = 10,
+			sortBy = ProductSortField.CREATED_AT,
+			order = 'DESC',
+		} = filters;
+
+		const query = this.productRepository.createQueryBuilder('product');
+
+		if (categoryId) {
+			query.andWhere('product.category_id = :categoryId', { categoryId });
+		}
+
+		if (search) {
+			query.andWhere('product.name ILIKE :search OR product.description ILIKE :search', { search: `%${search}%` });
+		}
+
+		if (minPrice) {
+			query.andWhere('product.price >= :minPrice', { minPrice });
+		}
+
+		if (maxPrice) {
+			query.andWhere('product.price <= :maxPrice', { maxPrice });
+		}
+
+		const total = await query.getCount();
+
+		const safeSortBy = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : ProductSortField.CREATED_AT;
+
+		const items = await query
+			.orderBy(`product.${safeSortBy}`, order)
+			.skip((page - 1) * limit)
+			.take(limit)
+			.getMany();
+
+		return { items, total, page, limit };
 	}
 }

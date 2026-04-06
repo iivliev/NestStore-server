@@ -7,10 +7,10 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/user-role/role.guard';
 
-@ApiTags('Product')
+@ApiTags('Product-Admin')
 @Roles(UserRole.ADMIN)
 @UseGuards(RolesGuard)
-@Controller('product')
+@Controller('product-admin')
 export class ProductAdminController {
 	constructor(private readonly productService: ProductService) {}
 
