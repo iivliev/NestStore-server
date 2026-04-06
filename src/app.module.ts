@@ -13,6 +13,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { GlobalExceptionFilter } from './infrastructure/exceptions/filters/global-exception.filter';
 import { ProductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
+import { CartModule } from './cart/cart.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -44,6 +45,7 @@ const ENV = process.env.NODE_ENV;
 		SecurityModule,
 		ProductModule,
 		CategoryModule,
+		CartModule,
 	],
 	controllers: [],
 	providers: [
