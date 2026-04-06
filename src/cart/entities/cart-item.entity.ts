@@ -26,5 +26,5 @@ export class CartItem {
 	quantity: number;
 
 	@Column('decimal')
-	priceAtMoment: number;
+	priceAtMoment: string;
 }

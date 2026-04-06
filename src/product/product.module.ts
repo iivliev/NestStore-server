@@ -12,5 +12,6 @@ import { ProductPublicController } from './controllers/public/product-public.con
 	imports: [TypeOrmModule.forFeature([Product]), CategoryModule, AuthModule, UsersModule],
 	controllers: [ProductAdminController, ProductPublicController],
 	providers: [ProductService],
+	exports: [ProductService],
 })
 export class ProductModule {}
